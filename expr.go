@@ -1,61 +1,124 @@
 package main
 
+type ExprVisitor interface {
+	VisitLiteralExpr(expr *LiteralExpr) any
+	VisitGroupingExpr(expr *GroupingExpr) any
+	VisitUnaryExpr(expr *UnaryExpr) any
+	VisitBinaryExpr(expr *BinaryExpr) any
+	VisitVariableExpr(expr *VariableExpr) any
+	VisitAssignExpr(expr *AssignExpr) any
+	VisitCallExpr(expr *CallExpr) any
+	VisitGetExpr(expr *GetExpr) any
+	VisitSetExpr(expr *SetExpr) any
+	VisitLogicalExpr(expr *LogicalExpr) any
+	VisitSuperExpr(expr *SuperExpr) any
+	VisitThisExpr(expr *ThisExpr) any
+}
 type Expr interface {
 	String() string
+	Accept(visitor ExprVisitor) any
 }
 
-type Assign struct {
+type AssignExpr struct {
 	Name  string
 	Value Expr
 }
 
-type Binary struct {
+func (a *AssignExpr) Accept(visitor ExprVisitor) any {
+	return visitor.VisitAssignExpr(a)
+}
+
+type BinaryExpr struct {
 	Left     Expr
 	Operator *Token
 	Right    Expr
 }
 
-type Call struct {
+func (a *BinaryExpr) Accept(visitor ExprVisitor) any {
+	return visitor.VisitBinaryExpr(a)
+}
+
+type CallExpr struct {
 	Callee    Expr
 	Arguments []Expr
 }
 
-type Get struct {
+func (c *CallExpr) Accept(visitor ExprVisitor) any {
+	return visitor.VisitCallExpr(c)
+}
+
+type GetExpr struct {
 	Object Expr
 	Name   string
 }
 
-type Grouping struct {
+func (g *GetExpr) Accept(visitor ExprVisitor) any {
+	return visitor.VisitGetExpr(g)
+}
+
+type GroupingExpr struct {
 	Expression Expr
 }
 
-type Literal struct {
+func (g *GroupingExpr) Accept(visitor ExprVisitor) any {
+	return visitor.VisitGroupingExpr(g)
+}
+
+type LiteralExpr struct {
 	Value any
 }
 
-type Logical struct {
+func (l *LiteralExpr) Accept(visitor ExprVisitor) any {
+	return visitor.VisitLiteralExpr(l)
+}
+
+type LogicalExpr struct {
 	Left     Expr
 	Operator *Token
 	Right    Expr
 }
 
-type Set struct {
+func (l *LogicalExpr) Accept(visitor ExprVisitor) any {
+	return visitor.VisitLogicalExpr(l)
+}
+
+type SetExpr struct {
 	Object Expr
 	Name   string
 	Value  Expr
 }
 
-type Super struct {
+func (s *SetExpr) Accept(visitor ExprVisitor) any {
+	return visitor.VisitSetExpr(s)
+}
+
+type SuperExpr struct {
 	Method string
 }
 
-type This struct{}
+func (s *SuperExpr) Accept(visitor ExprVisitor) any {
+	return visitor.VisitSuperExpr(s)
+}
 
-type Unary struct {
+type ThisExpr struct{}
+
+func (t *ThisExpr) Accept(visitor ExprVisitor) any {
+	return visitor.VisitThisExpr(t)
+}
+
+type UnaryExpr struct {
 	Operator *Token
 	Right    Expr
 }
 
-type Variable struct {
+func (u *UnaryExpr) Accept(visitor ExprVisitor) any {
+	return visitor.VisitUnaryExpr(u)
+}
+
+type VariableExpr struct {
 	Name string
+}
+
+func (v *VariableExpr) Accept(visitor ExprVisitor) any {
+	return visitor.VisitVariableExpr(v)
 }

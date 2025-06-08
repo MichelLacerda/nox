@@ -117,19 +117,19 @@ func (t TokenType) String() string {
 
 type Token struct {
 	Type    TokenType
-	lexeme  string
+	Lexeme  string
 	Literal any
 	line    int
 }
 
 func (t Token) String() string {
-	return fmt.Sprintf("%s %s %v", t.Type, t.lexeme, t.Literal)
+	return fmt.Sprintf("%s %s %v", t.Type, t.Lexeme, t.Literal)
 }
 
 func NewToken(tokenType TokenType, lexeme string, literal any, line int) *Token {
 	return &Token{
 		Type:    tokenType,
-		lexeme:  lexeme,
+		Lexeme:  lexeme,
 		Literal: literal,
 		line:    line,
 	}

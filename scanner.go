@@ -94,7 +94,7 @@ func (s *Scanner) ScanToken() {
 			// A block comment starts with /* and ends with */.
 			for {
 				if s.IsAtEnd() {
-					Interpret.ErrorAt(s.line, "Unterminated block comment.")
+					runtime.ErrorAt(s.line, "Unterminated block comment.")
 					break
 				}
 
@@ -126,7 +126,7 @@ func (s *Scanner) ScanToken() {
 		} else if s.IsAlpha(c) {
 			s.ConsumeIdentifier()
 		} else {
-			Interpret.ErrorAt(s.line, fmt.Sprintf("Unexpected character '%c'", c))
+			runtime.ErrorAt(s.line, fmt.Sprintf("Unexpected character '%c'", c))
 		}
 	}
 }
@@ -162,8 +162,8 @@ func (s *Scanner) ConsumeNumber() {
 	value, err := strconv.ParseFloat(lexema, 64)
 
 	if err != nil {
-		Interpret.hadError = true
-		Interpret.ErrorAt(s.line, fmt.Sprintf("Invalid number format: %s", lexema))
+		runtime.hadError = true
+		runtime.ErrorAt(s.line, fmt.Sprintf("Invalid number format: %s", lexema))
 	}
 
 	s.AddTokenWithLiteral(TokenType_NUMBER, value)
@@ -178,7 +178,7 @@ func (s *Scanner) ConsumeString() {
 	}
 
 	if s.IsAtEnd() {
-		Interpret.ErrorAt(s.line, "Unterminated string.")
+		runtime.ErrorAt(s.line, "Unterminated string.")
 		return
 	}
 

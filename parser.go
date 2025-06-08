@@ -5,15 +5,6 @@ type Parser struct {
 	current int
 }
 
-type ParseError struct {
-	Token   *Token
-	Message string
-}
-
-func (e ParseError) Error() string {
-	return e.Message
-}
-
 func NewParser(tokens []*Token) *Parser {
 	return &Parser{
 		tokens:  tokens,
@@ -58,7 +49,7 @@ func (p *Parser) Equality() (Expr, error) {
 			return nil, err
 		}
 
-		expr = &Binary{
+		expr = &BinaryExpr{
 			Left:     expr,
 			Operator: operator,
 			Right:    right,
@@ -82,7 +73,7 @@ func (p *Parser) Comparison() (Expr, error) {
 		if err != nil {
 			return nil, err
 		}
-		expr = &Binary{
+		expr = &BinaryExpr{
 			Left:     expr,
 			Operator: operator,
 			Right:    right,
@@ -106,7 +97,7 @@ func (p *Parser) Term() (Expr, error) {
 		if err != nil {
 			return nil, err
 		}
-		expr = &Binary{
+		expr = &BinaryExpr{
 			Left:     expr,
 			Operator: operator,
 			Right:    right,
@@ -131,7 +122,7 @@ func (p *Parser) Factor() (Expr, error) {
 			return nil, err
 		}
 
-		expr = &Binary{
+		expr = &BinaryExpr{
 			Left:     expr,
 			Operator: operator,
 			Right:    right,
@@ -150,7 +141,7 @@ func (p *Parser) Unary() (Expr, error) {
 			return nil, err
 		}
 
-		return &Unary{
+		return &UnaryExpr{
 			Operator: operator,
 			Right:    right,
 		}, nil
@@ -161,17 +152,17 @@ func (p *Parser) Unary() (Expr, error) {
 
 func (p *Parser) Primary() (Expr, error) {
 	if p.Match(TokenType_FALSE) {
-		return &Literal{Value: false}, nil
+		return &LiteralExpr{Value: false}, nil
 	}
 	if p.Match(TokenType_TRUE) {
-		return &Literal{Value: true}, nil
+		return &LiteralExpr{Value: true}, nil
 	}
 	if p.Match(TokenType_NIL) {
-		return &Literal{Value: nil}, nil
+		return &LiteralExpr{Value: nil}, nil
 	}
 
 	if p.Match(TokenType_NUMBER, TokenType_STRING) {
-		return &Literal{Value: p.Previous().Literal}, nil
+		return &LiteralExpr{Value: p.Previous().Literal}, nil
 	}
 
 	if p.Match(TokenType_LEFT_PAREN) {
@@ -182,10 +173,10 @@ func (p *Parser) Primary() (Expr, error) {
 		}
 
 		p.Consume(TokenType_RIGHT_PAREN, "Expect ')' after expression.")
-		return &Grouping{Expression: expr}, nil
+		return &GroupingExpr{Expression: expr}, nil
 	}
 
-	return nil, ParseError{
+	return nil, ParserError{
 		Token:   p.Peek(),
 		Message: "Expect expression.",
 	}
@@ -197,7 +188,7 @@ func (p *Parser) Consume(tt TokenType, msg string) (*Token, error) {
 		return next, nil
 	}
 
-	return nil, ParseError{
+	return nil, ParserError{
 		Token:   p.Peek(),
 		Message: msg,
 	}

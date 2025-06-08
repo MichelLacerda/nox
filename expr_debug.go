@@ -5,15 +5,15 @@ import (
 	"strings"
 )
 
-func (a *Assign) String() string {
+func (a *AssignExpr) String() string {
 	return fmt.Sprintf("assign %s = %s", a.Name, a.Value.String())
 }
 
-func (b *Binary) String() string {
-	return parenthesize(b.Operator.lexeme, b.Left, b.Right)
+func (b *BinaryExpr) String() string {
+	return parenthesize(b.Operator.Lexeme, b.Left, b.Right)
 }
 
-func (c *Call) String() string {
+func (c *CallExpr) String() string {
 	var args []string
 	for _, arg := range c.Arguments {
 		args = append(args, arg.String())
@@ -21,15 +21,15 @@ func (c *Call) String() string {
 	return fmt.Sprintf("call %s(%s)", c.Callee.String(), strings.Join(args, ", "))
 }
 
-func (g *Get) String() string {
+func (g *GetExpr) String() string {
 	return fmt.Sprintf("get %s from %s", g.Name, g.Object.String())
 }
 
-func (g *Grouping) String() string {
+func (g *GroupingExpr) String() string {
 	return parenthesize("group", g.Expression)
 }
 
-func (l *Literal) String() string {
+func (l *LiteralExpr) String() string {
 	if l.Value == nil {
 		return "nil"
 	}
@@ -42,27 +42,27 @@ func (l *Literal) String() string {
 	}
 }
 
-func (l *Logical) String() string {
-	return parenthesize(l.Operator.lexeme, l.Left, l.Right)
+func (l *LogicalExpr) String() string {
+	return parenthesize(l.Operator.Lexeme, l.Left, l.Right)
 }
 
-func (s *Set) String() string {
+func (s *SetExpr) String() string {
 	return parenthesize("set "+s.Name, s.Object, s.Value)
 }
 
-func (s *Super) String() string {
+func (s *SuperExpr) String() string {
 	return fmt.Sprintf("super %s", s.Method)
 }
 
-func (t *This) String() string {
+func (t *ThisExpr) String() string {
 	return "this"
 }
 
-func (u *Unary) String() string {
-	return parenthesize(u.Operator.lexeme, u.Right)
+func (u *UnaryExpr) String() string {
+	return parenthesize(u.Operator.Lexeme, u.Right)
 }
 
-func (v *Variable) String() string {
+func (v *VariableExpr) String() string {
 	return v.Name
 }
 
