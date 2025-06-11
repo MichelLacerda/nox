@@ -12,26 +12,167 @@ func NewParser(tokens []*Token) *Parser {
 	}
 }
 
-func (p *Parser) Parse() (Expr, error) {
-	// expr, err := p.Expression()
-	// if err != nil {
-	// 	return nil, err
-	// }
+// func (p *Parser) Parse() (Expr, error) {
+// 	return p.Expression()
+// }
 
-	// if !p.IsAtEnd() {
-	// 	return nil, ParseError{
-	// 		Token:   p.Peek(),
-	// 		Message: "Unexpected token after expression.",
-	// 	}
-	// }
+func (p *Parser) Parse() ([]Stmt, error) {
+	statements := make([]Stmt, 0)
 
-	// return expr, nil
+	for !p.IsAtEnd() {
+		// stmt, err := p.Statement()
+		// if err != nil {
+		// 	return nil, err
+		// }
+		// statements = append(statements, stmt)
+		d, err := p.declaration()
 
-	return p.Expression()
+		if err != nil {
+			return nil, err
+		}
+
+		statements = append(statements, d)
+	}
+
+	return statements, nil
+}
+
+func (p *Parser) declaration() (Stmt, error) {
+	if p.Match(TokenType_LET) {
+		stmt, err := p.VarDeclaration()
+		if err != nil {
+			p.Synchronize()
+			return nil, err
+		}
+		return stmt, nil
+	}
+
+	stmt, err := p.Statement()
+	if err != nil {
+		p.Synchronize()
+		return nil, err
+	}
+	return stmt, nil
+}
+
+func (p *Parser) VarDeclaration() (Stmt, error) {
+	name, err := p.Consume(TokenType_IDENTIFIER, "Expect variable name.")
+	if err != nil {
+		return nil, err
+	}
+
+	var initializer Expr
+	if p.Match(TokenType_EQUAL) {
+		initializer, err = p.Expression()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if _, err := p.Consume(TokenType_SEMICOLON, "Expect ';' after variable declaration."); err != nil {
+		return nil, err
+	}
+
+	return &VarStmt{name, initializer}, nil
+}
+
+func (p *Parser) Statement() (Stmt, error) {
+	if p.Match(TokenType_PRINT) {
+		return p.PrintStatement()
+	}
+
+	if p.Match(TokenType_LEFT_BRACE) {
+		return &BlockStmt{
+			Statements: p.Block(),
+		}, nil
+	}
+
+	return p.ExpressionStatement()
+}
+
+func (p *Parser) Block() []Stmt {
+	statements := make([]Stmt, 0)
+
+	for !p.IsAtEnd() && !p.Check(TokenType_RIGHT_BRACE) {
+		stmt, err := p.declaration()
+		if err != nil {
+			p.Synchronize()
+			continue
+		}
+		statements = append(statements, stmt)
+	}
+
+	_, err := p.Consume(TokenType_RIGHT_BRACE, "Expect '}' after block.")
+
+	if err != nil {
+		return nil
+	}
+
+	return statements
+}
+
+func (p *Parser) PrintStatement() (Stmt, error) {
+	expr, err := p.Expression()
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = p.Consume(TokenType_SEMICOLON, "Expect ';' after value.")
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &PrintStmt{
+		Expression: expr,
+	}, nil
+}
+
+func (p *Parser) ExpressionStatement() (Stmt, error) {
+	expr, err := p.Expression()
+	if err != nil {
+		return nil, err
+	}
+
+	p.Consume(TokenType_SEMICOLON, "Expect ';' after expression.")
+
+	return &ExpressionStmt{
+		Expression: expr,
+	}, nil
 }
 
 func (p *Parser) Expression() (Expr, error) {
-	return p.Equality()
+	return p.Assignment()
+}
+
+func (p *Parser) Assignment() (Expr, error) {
+	expr, err := p.Equality()
+	if err != nil {
+		return nil, err
+	}
+
+	if p.Match(TokenType_EQUAL) {
+		equals := p.Previous()
+		value, err := p.Assignment()
+		if err != nil {
+			return nil, err
+		}
+
+		varExpr, ok := expr.(*VariableExpr)
+		if !ok {
+			return nil, ParserError{
+				Token:   equals,
+				Message: "Invalid assignment target.",
+			}
+		}
+
+		return &AssignExpr{
+			Name:  varExpr.Name,
+			Value: value,
+		}, nil
+	}
+
+	return expr, nil
 }
 
 func (p *Parser) Equality() (Expr, error) {
@@ -163,6 +304,11 @@ func (p *Parser) Primary() (Expr, error) {
 
 	if p.Match(TokenType_NUMBER, TokenType_STRING) {
 		return &LiteralExpr{Value: p.Previous().Literal}, nil
+	}
+
+	if p.Match(TokenType_IDENTIFIER) {
+		t := p.Previous()
+		return &VariableExpr{t}, nil
 	}
 
 	if p.Match(TokenType_LEFT_PAREN) {

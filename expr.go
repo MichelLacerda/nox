@@ -20,7 +20,7 @@ type Expr interface {
 }
 
 type AssignExpr struct {
-	Name  string
+	Name  *Token
 	Value Expr
 }
 
@@ -116,7 +116,7 @@ func (u *UnaryExpr) Accept(visitor ExprVisitor) any {
 }
 
 type VariableExpr struct {
-	Name string
+	Name *Token
 }
 
 func (v *VariableExpr) Accept(visitor ExprVisitor) any {

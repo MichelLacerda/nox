@@ -11,3 +11,7 @@ test:
 clean:
 	go clean
 	rm -f ./nox.exe
+
+.PHONY: run
+run: build
+	./nox.exe

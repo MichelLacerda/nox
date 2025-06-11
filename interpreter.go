@@ -7,24 +7,90 @@ import (
 )
 
 type Interpreter struct {
-	vm *Nox
+	runtime      *Nox
+	globals      *Environment
+	environments *Environment
 }
 
-func NewInterpreter() *Interpreter {
-	return &Interpreter{}
+func NewInterpreter(r *Nox) *Interpreter {
+	e := NewEnvironment(r, nil)
+	return &Interpreter{
+		runtime:      r,
+		globals:      e,
+		environments: e,
+	}
 }
 
 // Interpret executa uma expressão e imprime o resultado.
-func (i *Interpreter) Interpret(vm *Nox, expr Expr) {
-	i.vm = vm
-	result := i.eval(expr)
-	if result != nil {
-		i.vm.hadRuntimeError = false
+// func (i *Interpreter) Interpret(vm *Nox, expr Expr) {
+// 	i.vm = vm
+// 	result := i.eval(expr)
+// 	if result != nil {
+// 		i.vm.hadRuntimeError = false
+// 	}
+// 	fmt.Println("Result:", i.stringify(result))
+// }
+
+func (i *Interpreter) Interpret(expr []Stmt) {
+	for _, statement := range expr {
+		i.execute(statement)
 	}
-	fmt.Println("Result:", i.stringify(result))
+}
+
+func (i *Interpreter) execute(s Stmt) {
+	s.Accept(i)
 }
 
 // ===== Visitor methods =====
+
+func (i *Interpreter) VisitExpressionStmt(stmt *ExpressionStmt) any {
+	result := i.eval(stmt.Expression)
+	if result != nil {
+		i.runtime.hadRuntimeError = false
+	}
+	return result
+}
+
+func (i *Interpreter) VisitPrintStmt(stmt *PrintStmt) any {
+	result := i.eval(stmt.Expression)
+	if result != nil {
+		i.runtime.hadRuntimeError = false
+	}
+	fmt.Println(i.stringify(result))
+	return nil
+}
+
+func (i *Interpreter) VisitVarStmt(stmt *VarStmt) any {
+	var value any
+	if stmt.Value != nil {
+		value = i.eval(stmt.Value)
+		if value != nil {
+			i.runtime.hadRuntimeError = false
+		}
+	}
+	i.environments.Define(stmt.Name.Lexeme, value)
+	return nil
+}
+
+func (i *Interpreter) VisitBlockStmt(stmt *BlockStmt) any {
+	i.executeBlock(stmt.Statements, NewEnvironment(i.runtime, i.environments))
+	return nil
+}
+
+func (i *Interpreter) executeBlock(statements []Stmt, environment *Environment) {
+	previous := i.environments
+	i.environments = environment
+	defer func() {
+		i.environments = previous
+	}()
+
+	for _, statement := range statements {
+		i.execute(statement)
+		if i.runtime.hadRuntimeError {
+			return
+		}
+	}
+}
 
 func (i *Interpreter) VisitLiteralExpr(expr *LiteralExpr) any {
 	return expr.Value
@@ -65,7 +131,7 @@ func (i *Interpreter) VisitBinaryExpr(expr *BinaryExpr) any {
 			return nil
 		}
 		if right.(float64) == 0 {
-			i.vm.ReportRuntimeError(expr.Operator, "Division by zero.")
+			i.runtime.ReportRuntimeError(expr.Operator, "Division by zero.")
 			return nil
 		}
 		return left.(float64) / right.(float64)
@@ -87,7 +153,7 @@ func (i *Interpreter) VisitBinaryExpr(expr *BinaryExpr) any {
 				return l + r
 			}
 		}
-		i.vm.ReportRuntimeError(expr.Operator, "Operands must be two numbers or two strings.")
+		i.runtime.ReportRuntimeError(expr.Operator, "Operands must be two numbers or two strings.")
 		return nil
 
 	case TokenType_GREATER:
@@ -126,12 +192,13 @@ func (i *Interpreter) VisitBinaryExpr(expr *BinaryExpr) any {
 
 // Placeholder visitors (ainda não implementados)
 func (i *Interpreter) VisitVariableExpr(expr *VariableExpr) any {
-	log.Panic("VisitVariableExpr not implemented yet.")
-	return nil
+	return i.environments.Get(expr.Name.Lexeme)
 }
 
 func (i *Interpreter) VisitAssignExpr(expr *AssignExpr) any {
-	log.Panic("VisitAssignExpr not implemented yet.")
+	value := i.eval(expr.Value)
+
+	i.environments.Assign(expr.Name, value)
 	return nil
 }
 
@@ -203,7 +270,7 @@ func (i *Interpreter) stringify(value any) string {
 
 func (i *Interpreter) mustBeNumber(op *Token, val any) bool {
 	if _, ok := val.(float64); !ok {
-		i.vm.ReportRuntimeError(op, "Operand must be a number.")
+		i.runtime.ReportRuntimeError(op, "Operand must be a number.")
 		return false
 	}
 	return true
@@ -211,11 +278,11 @@ func (i *Interpreter) mustBeNumber(op *Token, val any) bool {
 
 func (i *Interpreter) mustBeNumbers(op *Token, left, right any) bool {
 	if _, ok := left.(float64); !ok {
-		i.vm.ReportRuntimeError(op, "Left operand must be a number.")
+		i.runtime.ReportRuntimeError(op, "Left operand must be a number.")
 		return false
 	}
 	if _, ok := right.(float64); !ok {
-		i.vm.ReportRuntimeError(op, "Right operand must be a number.")
+		i.runtime.ReportRuntimeError(op, "Right operand must be a number.")
 		return false
 	}
 	return true

@@ -63,7 +63,7 @@ func (u *UnaryExpr) String() string {
 }
 
 func (v *VariableExpr) String() string {
-	return v.Name
+	return v.Name.Lexeme
 }
 
 func parenthesize(name string, parts ...Expr) string {

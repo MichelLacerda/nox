@@ -13,20 +13,13 @@ type Nox struct {
 }
 
 func NewNox() *Nox {
-	return &Nox{
+	r := &Nox{
 		hadError:        false,
 		hadRuntimeError: false,
-		interpreter:     NewInterpreter(),
 	}
-}
 
-type RuntimeError struct {
-	Token   *Token
-	Message string
-}
-
-func (e RuntimeError) Error() string {
-	return e.Message
+	r.interpreter = NewInterpreter(r)
+	return r
 }
 
 type ParserError struct {
@@ -36,6 +29,15 @@ type ParserError struct {
 
 func (e ParserError) Error() string {
 	return fmt.Sprintf("Parser Error at %s: %s", e.Token.Lexeme, e.Message)
+}
+
+type RuntimeError struct {
+	Token   *Token
+	Message string
+}
+
+func (e RuntimeError) Error() string {
+	return e.Message
 }
 
 func (n *Nox) ReportError(line int, where, message string) {
@@ -59,23 +61,26 @@ func (n *Nox) RunFile(path string) error {
 
 	fmt.Println("Running file:", path, " ", len(source), "bytes")
 
-	n.Run(string(source))
-	fmt.Println("File execution completed.")
-	if n.hadError {
-		fmt.Println("Errors encountered during execution.")
-		os.Exit(65) // Exit code 65 indicates a runtime error.
+	if err := n.Run(string(source)); err != nil {
+		fmt.Printf("Error: %v\n", err)
+		if perr, ok := err.(ParserError); ok {
+			n.ErrorAt(perr.Token.line, perr.Message)
+			os.Exit(65)
+		} else if rerr, ok := err.(RuntimeError); ok {
+			n.ReportRuntimeError(rerr.Token, rerr.Message)
+			os.Exit(70)
+		}
+	} else {
+		n.hadError = false
 	}
-	if n.hadRuntimeError {
-		fmt.Println("Runtime errors encountered during execution.")
-		os.Exit(70) // Exit code 70 indicates a runtime error.
-	}
+
 	return nil
 }
 
 func (n *Nox) RunPrompt() {
 	input := bufio.NewScanner(os.Stdin)
 
-	fmt.Println("Welcome to Nox! Type 'exit' or 'quit' to exit.")
+	fmt.Println("Welcome to Nox! Type 'exit', 'quit' or '\\q' to exit.")
 	for {
 		fmt.Print(">> ")
 		line := input.Scan()
@@ -86,7 +91,7 @@ func (n *Nox) RunPrompt() {
 			break
 		}
 		text := input.Text()
-		if text == "exit" || text == "quit" {
+		if text == "exit" || text == "quit" || text == "\\q" {
 			fmt.Println("Exiting Nox.")
 			break
 		}
@@ -104,13 +109,13 @@ func (n *Nox) Run(source string) error {
 	tokens := scanner.ScanTokens()
 
 	parser := NewParser(tokens)
-	expr, err := parser.Parse()
-
-	n.interpreter.Interpret(n, expr)
+	statements, err := parser.Parse()
 
 	if err != nil {
 		return err
 	}
+
+	n.interpreter.Interpret(statements)
 
 	// fmt.Println("Parsed expression:", expr)
 
