@@ -37,8 +37,9 @@ func (i *Interpreter) Interpret(expr []Stmt) {
 	}
 }
 
-func (i *Interpreter) execute(s Stmt) {
+func (i *Interpreter) execute(s Stmt) error {
 	s.Accept(i)
+	return nil
 }
 
 // ===== Visitor methods =====
@@ -49,6 +50,18 @@ func (i *Interpreter) VisitExpressionStmt(stmt *ExpressionStmt) any {
 		i.runtime.hadRuntimeError = false
 	}
 	return result
+}
+
+func (i *Interpreter) VisitIfStmt(stmt *IfStmt) any {
+	condition := i.eval(stmt.Condition)
+
+	if i.isTruthy(condition) {
+		i.execute(stmt.Then)
+	} else if stmt.Else != nil {
+		i.execute(stmt.Else)
+	}
+
+	return nil
 }
 
 func (i *Interpreter) VisitPrintStmt(stmt *PrintStmt) any {
@@ -77,7 +90,7 @@ func (i *Interpreter) VisitBlockStmt(stmt *BlockStmt) any {
 	return nil
 }
 
-func (i *Interpreter) executeBlock(statements []Stmt, environment *Environment) {
+func (i *Interpreter) executeBlock(statements []Stmt, environment *Environment) error {
 	previous := i.environments
 	i.environments = environment
 	defer func() {
@@ -85,11 +98,12 @@ func (i *Interpreter) executeBlock(statements []Stmt, environment *Environment) 
 	}()
 
 	for _, statement := range statements {
-		i.execute(statement)
-		if i.runtime.hadRuntimeError {
-			return
+		if err := i.execute(statement); err != nil {
+			return err
 		}
 	}
+
+	return nil
 }
 
 func (i *Interpreter) VisitLiteralExpr(expr *LiteralExpr) any {
@@ -218,8 +232,19 @@ func (i *Interpreter) VisitSetExpr(expr *SetExpr) any {
 }
 
 func (i *Interpreter) VisitLogicalExpr(expr *LogicalExpr) any {
-	log.Panic("VisitLogicalExpr not implemented yet.")
-	return nil
+	left := i.eval(expr.Left)
+
+	if expr.Operator.Type == TokenType_OR {
+		if i.isTruthy(left) {
+			return left
+		}
+	} else if expr.Operator.Type == TokenType_AND {
+		if !i.isTruthy(left) {
+			return left
+		}
+	}
+
+	return i.eval(expr.Right)
 }
 
 func (i *Interpreter) VisitSuperExpr(expr *SuperExpr) any {
@@ -229,6 +254,19 @@ func (i *Interpreter) VisitSuperExpr(expr *SuperExpr) any {
 
 func (i *Interpreter) VisitThisExpr(expr *ThisExpr) any {
 	log.Panic("VisitThisExpr not implemented yet.")
+	return nil
+}
+
+func (i *Interpreter) VisitWhileStmt(stmt *WhileStmt) any {
+	previous := i.environments
+	defer func() { i.environments = previous }()
+
+	for i.isTruthy(i.eval(stmt.Condition)) {
+		i.execute(stmt.Body)
+		if i.runtime.hadRuntimeError {
+			return nil
+		}
+	}
 	return nil
 }
 

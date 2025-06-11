@@ -5,16 +5,33 @@ type StmtVisitor interface {
 	//VisitClassStmt(stmt *ClassStmt) any
 	VisitExpressionStmt(stmt *ExpressionStmt) any
 	//VisitFunctionStmt(stmt *FunctionStmt) any
-	//VisitIfStmt(stmt *IfStmt) any
+	VisitIfStmt(stmt *IfStmt) any
 	VisitPrintStmt(stmt *PrintStmt) any
 	//VisitReturnStmt(stmt *ReturnStmt) any
 	VisitVarStmt(stmt *VarStmt) any
-	//VisitWhileStmt(stmt *WhileStmt) any
+	VisitWhileStmt(stmt *WhileStmt) any
 }
 
 type Stmt interface {
 	String() string
 	Accept(visitor StmtVisitor) any
+}
+
+// BlockStmt represents a block of statements in the language.
+type BlockStmt struct {
+	Statements []Stmt
+}
+
+func (b *BlockStmt) String() string {
+	var result string
+	for _, stmt := range b.Statements {
+		result += stmt.String() + "\n"
+	}
+	return "{\n" + result + "}"
+}
+
+func (b *BlockStmt) Accept(visitor StmtVisitor) any {
+	return visitor.VisitBlockStmt(b)
 }
 
 // VarStmt represents a variable declaration statement in the language.
@@ -28,6 +45,25 @@ func (e *ExpressionStmt) String() string {
 
 func (e *ExpressionStmt) Accept(visitor StmtVisitor) any {
 	return visitor.VisitExpressionStmt(e)
+}
+
+// IfStmt represents an if statement in the language.
+type IfStmt struct {
+	Condition Expr
+	Then      Stmt
+	Else      Stmt // Optional else statement
+}
+
+func (i *IfStmt) String() string {
+	result := "if " + i.Condition.String() + " {\n" + i.Then.String() + "\n}"
+	if i.Else != nil {
+		result += " else {\n" + i.Else.String() + "\n}"
+	}
+	return result
+}
+
+func (i *IfStmt) Accept(visitor StmtVisitor) any {
+	return visitor.VisitIfStmt(i)
 }
 
 // PrintStmt represents a print statement in the language.
@@ -57,19 +93,16 @@ func (v *VarStmt) Accept(visitor StmtVisitor) any {
 	return visitor.VisitVarStmt(v)
 }
 
-// BlockStmt represents a block of statements in the language.
-type BlockStmt struct {
-	Statements []Stmt
+// WhileStmt represents a while loop statement in the language.
+type WhileStmt struct {
+	Condition Expr
+	Body      Stmt
 }
 
-func (b *BlockStmt) String() string {
-	var result string
-	for _, stmt := range b.Statements {
-		result += stmt.String() + "\n"
-	}
-	return "{\n" + result + "}"
+func (w *WhileStmt) String() string {
+	return "while " + w.Condition.String() + " {\n" + w.Body.String() + "\n}"
 }
 
-func (b *BlockStmt) Accept(visitor StmtVisitor) any {
-	return visitor.VisitBlockStmt(b)
+func (w *WhileStmt) Accept(visitor StmtVisitor) any {
+	return visitor.VisitWhileStmt(w)
 }

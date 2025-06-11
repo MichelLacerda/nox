@@ -77,8 +77,20 @@ func (p *Parser) VarDeclaration() (Stmt, error) {
 }
 
 func (p *Parser) Statement() (Stmt, error) {
+	if p.Match(TokenType_FOR) {
+		return p.ForStatement()
+	}
+
+	if p.Match(TokenType_IF) {
+		return p.IfStatement()
+	}
+
 	if p.Match(TokenType_PRINT) {
 		return p.PrintStatement()
+	}
+
+	if p.Match(TokenType_WHILE) {
+		return p.WhileStatement()
 	}
 
 	if p.Match(TokenType_LEFT_BRACE) {
@@ -88,6 +100,146 @@ func (p *Parser) Statement() (Stmt, error) {
 	}
 
 	return p.ExpressionStatement()
+}
+
+func (p *Parser) ForStatement() (Stmt, error) {
+	if _, err := p.Consume(TokenType_LEFT_PAREN, "Expect '(' after 'for'."); err != nil {
+		return nil, err
+	}
+
+	var initializer Stmt
+	if p.Match(TokenType_SEMICOLON) {
+		initializer = nil
+	} else if p.Match(TokenType_LET) {
+		varDecl, err := p.VarDeclaration()
+		if err != nil {
+			return nil, err
+		}
+		initializer = varDecl
+	} else {
+		stmt, err := p.ExpressionStatement()
+		if err != nil {
+			return nil, err
+		}
+		initializer = stmt
+	}
+
+	var condition Expr
+	if !p.Check(TokenType_SEMICOLON) {
+		var err error
+		condExpr, err := p.Expression()
+		if err != nil {
+			return nil, err
+		}
+		condition = condExpr
+	}
+
+	if _, err := p.Consume(TokenType_SEMICOLON, "Expect ';' after loop condition."); err != nil {
+		return nil, err
+	}
+
+	var increment Expr
+	if !p.Check(TokenType_RIGHT_PAREN) {
+		exprInc, err := p.Expression()
+		if err != nil {
+			return nil, err
+		}
+		increment = exprInc
+	}
+	p.Consume(TokenType_RIGHT_PAREN, "Expect ')' after for clauses.")
+
+	body, err := p.Statement()
+	if err != nil {
+		return nil, err
+	}
+
+	// Sempre cria um novo bloco para o incremento, mesmo se body já for bloco
+	if increment != nil {
+		var stmts []Stmt
+		if block, ok := body.(*BlockStmt); ok {
+			stmts = append([]Stmt{}, block.Statements...)
+			stmts = append(stmts, &ExpressionStmt{increment})
+		} else {
+			stmts = []Stmt{body, &ExpressionStmt{increment}}
+		}
+		body = &BlockStmt{Statements: stmts}
+	}
+
+	if condition == nil {
+		condition = &LiteralExpr{Value: true}
+	}
+
+	body = &WhileStmt{
+		Condition: condition,
+		Body:      body,
+	}
+
+	if initializer != nil {
+		body = &BlockStmt{
+			Statements: []Stmt{initializer, body},
+		}
+	}
+
+	return body, nil
+}
+
+func (p *Parser) WhileStatement() (Stmt, error) {
+	if _, err := p.Consume(TokenType_LEFT_PAREN, "Expect '(' after 'while'."); err != nil {
+		return nil, err
+	}
+
+	condition, err := p.Expression()
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err := p.Consume(TokenType_RIGHT_PAREN, "Expect ')' after while condition."); err != nil {
+		return nil, err
+	}
+
+	body, err := p.Statement()
+	if err != nil {
+		return nil, err
+	}
+
+	return &WhileStmt{
+		Condition: condition,
+		Body:      body,
+	}, nil
+}
+
+func (p *Parser) IfStatement() (Stmt, error) {
+	if _, err := p.Consume(TokenType_LEFT_PAREN, "Expect '(' after 'if'."); err != nil {
+		return nil, err
+	}
+
+	condition, err := p.Expression()
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err := p.Consume(TokenType_RIGHT_PAREN, "Expect ')' after if condition."); err != nil {
+		return nil, err
+	}
+
+	thenStmt, err := p.Statement()
+	if err != nil {
+		return nil, err
+	}
+
+	var elseStmt Stmt
+	if p.Match(TokenType_ELSE) {
+		elseStmt, err = p.Statement()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return &IfStmt{
+		Condition: condition,
+		Then:      thenStmt,
+		Else:      elseStmt,
+	}, nil
 }
 
 func (p *Parser) Block() []Stmt {
@@ -146,7 +298,7 @@ func (p *Parser) Expression() (Expr, error) {
 }
 
 func (p *Parser) Assignment() (Expr, error) {
-	expr, err := p.Equality()
+	expr, err := p.Or()
 	if err != nil {
 		return nil, err
 	}
@@ -158,18 +310,61 @@ func (p *Parser) Assignment() (Expr, error) {
 			return nil, err
 		}
 
-		varExpr, ok := expr.(*VariableExpr)
-		if !ok {
-			return nil, ParserError{
-				Token:   equals,
-				Message: "Invalid assignment target.",
-			}
+		if varExpr, ok := expr.(*VariableExpr); ok {
+			return &AssignExpr{
+				Name:  varExpr.Name,
+				Value: value,
+			}, nil
 		}
 
-		return &AssignExpr{
-			Name:  varExpr.Name,
-			Value: value,
-		}, nil
+		return nil, ParserError{
+			Token:   equals,
+			Message: "Invalid assignment target.",
+		}
+	}
+
+	return expr, nil
+}
+
+func (p *Parser) Or() (Expr, error) {
+	expr, err := p.And()
+	if err != nil {
+		return nil, err
+	}
+
+	for p.Match(TokenType_OR) {
+		operator := p.Previous()
+		right, err := p.And()
+		if err != nil {
+			return nil, err
+		}
+		expr = &LogicalExpr{
+			Left:     expr,
+			Operator: operator,
+			Right:    right,
+		}
+	}
+
+	return expr, nil
+}
+
+func (p *Parser) And() (Expr, error) {
+	expr, err := p.Equality()
+	if err != nil {
+		return nil, err
+	}
+
+	for p.Match(TokenType_AND) {
+		operator := p.Previous()
+		right, err := p.Equality()
+		if err != nil {
+			return nil, err
+		}
+		expr = &LogicalExpr{
+			Left:     expr,
+			Operator: operator,
+			Right:    right,
+		}
 	}
 
 	return expr, nil

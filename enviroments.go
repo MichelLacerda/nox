@@ -36,8 +36,8 @@ func (e *Environment) Get(name string) any {
 }
 
 func (e *Environment) Assign(name *Token, value any) {
-	if _, exists := e.Values[name.Lexeme]; !exists {
-		e.runtime.ReportRuntimeError(name, "Undefined variable: "+name.Lexeme)
+	if _, exists := e.Values[name.Lexeme]; exists {
+		e.Values[name.Lexeme] = value
 		return
 	}
 
@@ -46,5 +46,5 @@ func (e *Environment) Assign(name *Token, value any) {
 		return
 	}
 
-	e.Values[name.Lexeme] = value
+	e.runtime.ReportRuntimeError(name, "Undefined variable: "+name.Lexeme)
 }
