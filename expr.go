@@ -39,8 +39,9 @@ func (a *BinaryExpr) Accept(visitor ExprVisitor) any {
 }
 
 type CallExpr struct {
-	Callee    Expr
-	Arguments []Expr
+	Callee      Expr
+	Parenthesis *Token // The opening parenthesis
+	Arguments   []Expr
 }
 
 func (c *CallExpr) Accept(visitor ExprVisitor) any {

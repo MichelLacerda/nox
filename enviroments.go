@@ -9,7 +9,7 @@ type Environment struct {
 func NewEnvironment(r *Nox, scope *Environment) *Environment {
 	return &Environment{
 		runtime: r,
-		Values:  make(map[string]any),
+		Values:  map[string]any{},
 		Scope:   scope,
 	}
 }

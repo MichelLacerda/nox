@@ -16,7 +16,7 @@ type Scanner struct {
 func NewScanner(source []rune) *Scanner {
 	return &Scanner{
 		source:  source,
-		tokens:  make([]*Token, 0),
+		tokens:  []*Token{},
 		start:   0,
 		current: 0,
 		line:    1,

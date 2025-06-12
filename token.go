@@ -42,7 +42,7 @@ const (
 	TokenType_CLASS
 	TokenType_ELSE
 	TokenType_FALSE
-	TokenType_FUN
+	TokenType_FN
 	TokenType_FOR
 	TokenType_IF
 	TokenType_NIL
@@ -90,7 +90,7 @@ var TokenTypeNames = map[TokenType]string{
 	TokenType_CLASS:         "CLASS",
 	TokenType_ELSE:          "ELSE",
 	TokenType_FALSE:         "FALSE",
-	TokenType_FUN:           "FUN",
+	TokenType_FN:            "FN",
 	TokenType_FOR:           "FOR",
 	TokenType_IF:            "IF",
 	TokenType_NIL:           "NIL",
@@ -100,12 +100,11 @@ var TokenTypeNames = map[TokenType]string{
 	TokenType_SUPER:         "SUPER",
 	TokenType_THIS:          "THIS",
 	TokenType_TRUE:          "TRUE",
-	// TokenType_VAR:           "VAR",
-	TokenType_LET:   "LET",
-	TokenType_THEN:  "THEN",
-	TokenType_END:   "END",
-	TokenType_DO:    "DO",
-	TokenType_WHILE: "WHILE",
+	TokenType_LET:           "LET",
+	TokenType_THEN:          "THEN",
+	TokenType_END:           "END",
+	TokenType_DO:            "DO",
+	TokenType_WHILE:         "WHILE",
 }
 
 func (t TokenType) String() string {

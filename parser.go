@@ -12,19 +12,10 @@ func NewParser(tokens []*Token) *Parser {
 	}
 }
 
-// func (p *Parser) Parse() (Expr, error) {
-// 	return p.Expression()
-// }
-
 func (p *Parser) Parse() ([]Stmt, error) {
-	statements := make([]Stmt, 0)
+	statements := []Stmt{}
 
 	for !p.IsAtEnd() {
-		// stmt, err := p.Statement()
-		// if err != nil {
-		// 	return nil, err
-		// }
-		// statements = append(statements, stmt)
 		d, err := p.declaration()
 
 		if err != nil {
@@ -38,6 +29,17 @@ func (p *Parser) Parse() ([]Stmt, error) {
 }
 
 func (p *Parser) declaration() (Stmt, error) {
+	if p.Match(TokenType_FN) {
+		stmt, err := p.Function("function")
+
+		if err != nil {
+			p.Synchronize()
+			return nil, err
+		}
+
+		return stmt, nil
+	}
+
 	if p.Match(TokenType_LET) {
 		stmt, err := p.VarDeclaration()
 		if err != nil {
@@ -53,6 +55,59 @@ func (p *Parser) declaration() (Stmt, error) {
 		return nil, err
 	}
 	return stmt, nil
+}
+
+func (p *Parser) Function(kind string) (Stmt, error) {
+	name, err := p.Consume(TokenType_IDENTIFIER, "Expect "+kind+" name.")
+
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err := p.Consume(TokenType_LEFT_PAREN, "Expect '(' after "+kind+" name."); err != nil {
+		return nil, err
+	}
+
+	parameters := []*Token{}
+	for !p.Check(TokenType_RIGHT_PAREN) {
+		if len(parameters) >= 255 {
+			return nil, ParserError{
+				Token:   p.Peek(),
+				Message: "Cannot have more than 255 parameters.",
+			}
+		}
+		param, err := p.Consume(TokenType_IDENTIFIER, "Expect parameter name.")
+		if err != nil {
+			return nil, err
+		}
+		parameters = append(parameters, param)
+		if !p.Match(TokenType_COMMA) {
+			break
+		}
+	}
+
+	if _, err := p.Consume(TokenType_RIGHT_PAREN, "Expect ')' after parameters."); err != nil {
+		return nil, err
+	}
+
+	// Consome o '{' antes do corpo da função
+	if _, err := p.Consume(TokenType_LEFT_BRACE, "Expect '{' before "+kind+" body."); err != nil {
+		return nil, err
+	}
+
+	body := p.Block()
+	if body == nil {
+		return nil, ParserError{
+			Token:   p.Peek(),
+			Message: "Expect function body.",
+		}
+	}
+
+	return &FunctionStmt{
+		Name:       name,
+		Parameters: parameters,
+		Body:       body,
+	}, nil
 }
 
 func (p *Parser) VarDeclaration() (Stmt, error) {
@@ -89,6 +144,10 @@ func (p *Parser) Statement() (Stmt, error) {
 		return p.PrintStatement()
 	}
 
+	if p.Match(TokenType_RETURN) {
+		return p.ReturnStatement()
+	}
+
 	if p.Match(TokenType_WHILE) {
 		return p.WhileStatement()
 	}
@@ -100,6 +159,28 @@ func (p *Parser) Statement() (Stmt, error) {
 	}
 
 	return p.ExpressionStatement()
+}
+
+func (p *Parser) ReturnStatement() (Stmt, error) {
+	keyword := p.Previous()
+
+	var value Expr
+	if !p.Check(TokenType_SEMICOLON) {
+		var err error
+		value, err = p.Expression()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if _, err := p.Consume(TokenType_SEMICOLON, "Expect ';' after return value."); err != nil {
+		return nil, err
+	}
+
+	return &ReturnStmt{
+		Keyword: keyword,
+		Value:   value,
+	}, nil
 }
 
 func (p *Parser) ForStatement() (Stmt, error) {
@@ -243,7 +324,7 @@ func (p *Parser) IfStatement() (Stmt, error) {
 }
 
 func (p *Parser) Block() []Stmt {
-	statements := make([]Stmt, 0)
+	statements := []Stmt{}
 
 	for !p.IsAtEnd() && !p.Check(TokenType_RIGHT_BRACE) {
 		stmt, err := p.declaration()
@@ -483,7 +564,64 @@ func (p *Parser) Unary() (Expr, error) {
 		}, nil
 	}
 
-	return p.Primary()
+	return p.Call()
+}
+
+func (p *Parser) Call() (Expr, error) {
+	expr, err := p.Primary()
+
+	if err != nil {
+		return nil, err
+	}
+
+	for p.Match(TokenType_LEFT_PAREN) {
+		exprCall, err := p.FinishCall(expr)
+		if err != nil {
+			return nil, err
+		}
+		expr = exprCall
+	}
+	return expr, nil
+}
+
+func (p *Parser) FinishCall(expr Expr) (Expr, error) {
+	arguments := []Expr{}
+
+	// Se não for o token de fechamento, consome os argumentos
+	if !p.Check(TokenType_RIGHT_PAREN) {
+		for {
+			arg, err := p.Expression()
+
+			if err != nil {
+				return nil, err
+			}
+
+			if len(arguments) >= 255 {
+				return nil, ParserError{
+					Token:   p.Peek(),
+					Message: "Cannot have more than 255 arguments.",
+				}
+			}
+
+			arguments = append(arguments, arg)
+
+			if !p.Match(TokenType_COMMA) {
+				break
+			}
+		}
+	}
+
+	parens, err := p.Consume(TokenType_RIGHT_PAREN, "Expect ')' after arguments.")
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &CallExpr{
+		Callee:      expr,
+		Parenthesis: parens,
+		Arguments:   arguments,
+	}, nil
 }
 
 func (p *Parser) Primary() (Expr, error) {
@@ -583,7 +721,7 @@ func (p *Parser) Synchronize() {
 		switch p.Peek().Type {
 		case
 			TokenType_CLASS,
-			TokenType_FUN,
+			TokenType_FN,
 			TokenType_LET,
 			TokenType_IF,
 			TokenType_FOR,

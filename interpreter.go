@@ -13,23 +13,14 @@ type Interpreter struct {
 }
 
 func NewInterpreter(r *Nox) *Interpreter {
-	e := NewEnvironment(r, nil)
-	return &Interpreter{
+	interpreter := &Interpreter{
 		runtime:      r,
-		globals:      e,
-		environments: e,
+		globals:      NewEnvironment(r, nil),
+		environments: NewEnvironment(r, nil),
 	}
+	interpreter.globals.Define("clock", ClockCallable{})
+	return interpreter
 }
-
-// Interpret executa uma expressão e imprime o resultado.
-// func (i *Interpreter) Interpret(vm *Nox, expr Expr) {
-// 	i.vm = vm
-// 	result := i.eval(expr)
-// 	if result != nil {
-// 		i.vm.hadRuntimeError = false
-// 	}
-// 	fmt.Println("Result:", i.stringify(result))
-// }
 
 func (i *Interpreter) Interpret(expr []Stmt) {
 	for _, statement := range expr {
@@ -52,6 +43,12 @@ func (i *Interpreter) VisitExpressionStmt(stmt *ExpressionStmt) any {
 	return result
 }
 
+func (i *Interpreter) VisitFunctionStmt(stmt *FunctionStmt) any {
+	function := NewNoxFunction(stmt, i.environments)
+	i.environments.Define(stmt.Name.Lexeme, function)
+	return nil
+}
+
 func (i *Interpreter) VisitIfStmt(stmt *IfStmt) any {
 	condition := i.eval(stmt.Condition)
 
@@ -71,6 +68,20 @@ func (i *Interpreter) VisitPrintStmt(stmt *PrintStmt) any {
 	}
 	fmt.Println(i.stringify(result))
 	return nil
+}
+
+func (i *Interpreter) VisitReturnStmt(stmt *ReturnStmt) any {
+	var value any
+
+	if stmt.Value != nil {
+		value = i.eval(stmt.Value)
+	}
+
+	if value != nil {
+		i.runtime.hadRuntimeError = false
+	}
+
+	panic(Return{Value: value})
 }
 
 func (i *Interpreter) VisitVarStmt(stmt *VarStmt) any {
@@ -217,8 +228,24 @@ func (i *Interpreter) VisitAssignExpr(expr *AssignExpr) any {
 }
 
 func (i *Interpreter) VisitCallExpr(expr *CallExpr) any {
-	log.Panic("VisitCallExpr not implemented yet.")
-	return nil
+	callee := i.eval(expr.Callee)
+
+	arguments := make([]any, len(expr.Arguments))
+	for idx, arg := range expr.Arguments {
+		arguments[idx] = i.eval(arg)
+	}
+
+	function, ok := callee.(NoxCallable)
+	if !ok {
+		i.runtime.ReportRuntimeError(expr.Parenthesis, "Can only call functions and classes.")
+	}
+
+	if len(arguments) != function.Arity() {
+		i.runtime.ReportRuntimeError(expr.Parenthesis, fmt.Sprintf("Expected %d arguments but got %d.", function.Arity(), len(arguments)))
+		return nil
+	}
+
+	return function.Call(i, arguments)
 }
 
 func (i *Interpreter) VisitGetExpr(expr *GetExpr) any {

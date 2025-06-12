@@ -4,10 +4,10 @@ type StmtVisitor interface {
 	VisitBlockStmt(stmt *BlockStmt) any
 	//VisitClassStmt(stmt *ClassStmt) any
 	VisitExpressionStmt(stmt *ExpressionStmt) any
-	//VisitFunctionStmt(stmt *FunctionStmt) any
+	VisitFunctionStmt(stmt *FunctionStmt) any
 	VisitIfStmt(stmt *IfStmt) any
 	VisitPrintStmt(stmt *PrintStmt) any
-	//VisitReturnStmt(stmt *ReturnStmt) any
+	VisitReturnStmt(stmt *ReturnStmt) any
 	VisitVarStmt(stmt *VarStmt) any
 	VisitWhileStmt(stmt *WhileStmt) any
 }
@@ -47,6 +47,33 @@ func (e *ExpressionStmt) Accept(visitor StmtVisitor) any {
 	return visitor.VisitExpressionStmt(e)
 }
 
+// FunctionStmt represents a function declaration statement in the language.
+type FunctionStmt struct {
+	Name       *Token
+	Parameters []*Token
+	Body       []Stmt
+}
+
+func (f *FunctionStmt) String() string {
+	result := "fun " + f.Name.Lexeme + "("
+	for i, param := range f.Parameters {
+		if i > 0 {
+			result += ", "
+		}
+		result += param.Lexeme
+	}
+	result += ") {\n"
+	for _, stmt := range f.Body {
+		result += stmt.String() + "\n"
+	}
+	result += "}"
+	return result
+}
+
+func (f *FunctionStmt) Accept(visitor StmtVisitor) any {
+	return visitor.VisitFunctionStmt(f)
+}
+
 // IfStmt represents an if statement in the language.
 type IfStmt struct {
 	Condition Expr
@@ -77,6 +104,23 @@ func (p *PrintStmt) Accept(visitor StmtVisitor) any {
 
 func (p *PrintStmt) String() string {
 	return "print " + p.Expression.String() + ";"
+}
+
+// ReturnStmt represents a return statement in the language.
+type ReturnStmt struct {
+	Keyword *Token
+	Value   Expr
+}
+
+func (r *ReturnStmt) String() string {
+	if r.Value != nil {
+		return r.Keyword.Lexeme + " " + r.Value.String() + ";"
+	}
+	return r.Keyword.Lexeme + ";"
+}
+
+func (r *ReturnStmt) Accept(visitor StmtVisitor) any {
+	return visitor.VisitReturnStmt(r)
 }
 
 // VarStmt represents a variable declaration statement in the language.
