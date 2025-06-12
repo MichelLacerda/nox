@@ -33,8 +33,7 @@ func (p *Parser) declaration() (Stmt, error) {
 		stmt, err := p.Function("function")
 
 		if err != nil {
-			p.Synchronize()
-			return nil, err
+			return nil, err // Não sincroniza, apenas retorna o erro
 		}
 
 		return stmt, nil
@@ -43,16 +42,14 @@ func (p *Parser) declaration() (Stmt, error) {
 	if p.Match(TokenType_LET) {
 		stmt, err := p.VarDeclaration()
 		if err != nil {
-			p.Synchronize()
-			return nil, err
+			return nil, err // Não sincroniza, apenas retorna o erro
 		}
 		return stmt, nil
 	}
 
 	stmt, err := p.Statement()
 	if err != nil {
-		p.Synchronize()
-		return nil, err
+		return nil, err // Não sincroniza, apenas retorna o erro
 	}
 	return stmt, nil
 }
@@ -95,12 +92,9 @@ func (p *Parser) Function(kind string) (Stmt, error) {
 		return nil, err
 	}
 
-	body := p.Block()
-	if body == nil {
-		return nil, ParserError{
-			Token:   p.Peek(),
-			Message: "Expect function body.",
-		}
+	body, err := p.Block()
+	if err != nil {
+		return nil, err
 	}
 
 	return &FunctionStmt{
@@ -124,8 +118,13 @@ func (p *Parser) VarDeclaration() (Stmt, error) {
 		}
 	}
 
-	if _, err := p.Consume(TokenType_SEMICOLON, "Expect ';' after variable declaration."); err != nil {
-		return nil, err
+	// Permite ;, fim de bloco ou EOF como final de declaração
+	if !(p.Match(TokenType_SEMICOLON) || p.Check(TokenType_RIGHT_BRACE) || p.Check(TokenType_EOF)) {
+		// Usa o token da variável para reportar a linha correta
+		return nil, ParserError{
+			Token:   name,
+			Message: "Expect ';' after variable declaration.",
+		}
 	}
 
 	return &VarStmt{name, initializer}, nil
@@ -153,8 +152,12 @@ func (p *Parser) Statement() (Stmt, error) {
 	}
 
 	if p.Match(TokenType_LEFT_BRACE) {
+		stmts, err := p.Block()
+		if err != nil {
+			return nil, err
+		}
 		return &BlockStmt{
-			Statements: p.Block(),
+			Statements: stmts,
 		}, nil
 	}
 
@@ -323,25 +326,23 @@ func (p *Parser) IfStatement() (Stmt, error) {
 	}, nil
 }
 
-func (p *Parser) Block() []Stmt {
+func (p *Parser) Block() ([]Stmt, error) {
 	statements := []Stmt{}
 
 	for !p.IsAtEnd() && !p.Check(TokenType_RIGHT_BRACE) {
 		stmt, err := p.declaration()
 		if err != nil {
-			p.Synchronize()
-			continue
+			return nil, err
 		}
 		statements = append(statements, stmt)
 	}
 
 	_, err := p.Consume(TokenType_RIGHT_BRACE, "Expect '}' after block.")
-
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
-	return statements
+	return statements, nil
 }
 
 func (p *Parser) PrintStatement() (Stmt, error) {
