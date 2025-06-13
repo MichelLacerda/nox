@@ -1,16 +1,16 @@
 package main
 
 type Environment struct {
-	runtime *Nox
-	Values  map[string]any
-	Scope   *Environment
+	runtime   *Nox
+	Values    map[string]any
+	Enclosing *Environment
 }
 
 func NewEnvironment(r *Nox, scope *Environment) *Environment {
 	return &Environment{
-		runtime: r,
-		Values:  map[string]any{},
-		Scope:   scope,
+		runtime:   r,
+		Values:    map[string]any{},
+		Enclosing: scope,
 	}
 }
 
@@ -22,17 +22,22 @@ func (e *Environment) Define(name string, value any) {
 	e.Values[name] = value
 }
 
-func (e *Environment) Get(name string) any {
-	if value, exists := e.Values[name]; exists {
+func (e *Environment) Get(t *Token) any {
+	if value, exists := e.Values[t.Lexeme]; exists {
 		return value
 	}
 
-	if e.Scope != nil {
-		return e.Scope.Get(name)
+	if e.Enclosing != nil {
+		return e.Enclosing.Get(t)
 	}
 
-	e.runtime.ReportRuntimeError(&Token{Lexeme: name}, "Undefined variable: "+name)
+	e.runtime.ReportRuntimeError(&Token{Lexeme: t.Lexeme}, "Undefined variable: "+t.Lexeme)
 	return nil
+}
+
+func (e *Environment) GetAt(distance int, name string) any {
+	ancestor := e.Ancestor(distance)
+	return ancestor.Values[name]
 }
 
 func (e *Environment) Assign(name *Token, value any) {
@@ -41,10 +46,22 @@ func (e *Environment) Assign(name *Token, value any) {
 		return
 	}
 
-	if e.Scope != nil {
-		e.Scope.Assign(name, value)
+	if e.Enclosing != nil {
+		e.Enclosing.Assign(name, value)
 		return
 	}
 
 	e.runtime.ReportRuntimeError(name, "Undefined variable: "+name.Lexeme)
+}
+
+func (e *Environment) AssignAt(d int, name *Token, value any) {
+	e.Ancestor(d).Values[name.Lexeme] = value
+}
+
+func (e *Environment) Ancestor(distance int) *Environment {
+	env := e
+	for i := 0; i < distance; i++ {
+		env = env.Enclosing
+	}
+	return env
 }

@@ -125,12 +125,12 @@ func (r *ReturnStmt) Accept(visitor StmtVisitor) any {
 
 // VarStmt represents a variable declaration statement in the language.
 type VarStmt struct {
-	Name  *Token
-	Value Expr
+	Name        *Token
+	Initializer Expr
 }
 
 func (v *VarStmt) String() string {
-	return "let " + v.Name.Lexeme + " = " + v.Value.String() + ";"
+	return "let " + v.Name.Lexeme + " = " + v.Initializer.String() + ";"
 }
 
 func (v *VarStmt) Accept(visitor StmtVisitor) any {

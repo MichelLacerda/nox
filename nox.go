@@ -115,6 +115,13 @@ func (n *Nox) Run(source string) error {
 		return err
 	}
 
+	resolver := NewResolver(n.interpreter)
+	resolver.ResolveStatements(statements)
+
+	if n.hadError {
+		return fmt.Errorf("parsing failed with errors")
+	}
+
 	n.interpreter.Interpret(statements)
 
 	// fmt.Println("Parsed expression:", expr)

@@ -17,13 +17,13 @@ type NoxFunction struct {
 }
 
 func NewNoxFunction(declaration *FunctionStmt, closure *Environment) NoxCallable {
-	return NoxFunction{
+	return &NoxFunction{
 		Declaration: declaration,
 		closure:     closure,
 	}
 }
 
-func (f NoxFunction) Call(interpreter *Interpreter, args []any) (result any) {
+func (f *NoxFunction) Call(interpreter *Interpreter, args []any) (result any) {
 	environment := NewEnvironment(interpreter.runtime, f.closure)
 	for i, token := range f.Declaration.Parameters {
 		environment.Define(token.Lexeme, args[i])
@@ -44,11 +44,11 @@ func (f NoxFunction) Call(interpreter *Interpreter, args []any) (result any) {
 	return nil
 }
 
-func (f NoxFunction) Arity() int {
+func (f *NoxFunction) Arity() int {
 	return len(f.Declaration.Parameters)
 }
 
-func (f NoxFunction) String() string {
+func (f *NoxFunction) String() string {
 	return fmt.Sprintf("<function %s>", f.Declaration.Name.Lexeme)
 }
 

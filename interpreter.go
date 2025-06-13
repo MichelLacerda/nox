@@ -9,6 +9,7 @@ import (
 type Interpreter struct {
 	runtime      *Nox
 	globals      *Environment
+	locals       map[Expr]int
 	environments *Environment
 }
 
@@ -16,8 +17,10 @@ func NewInterpreter(r *Nox) *Interpreter {
 	interpreter := &Interpreter{
 		runtime:      r,
 		globals:      NewEnvironment(r, nil),
-		environments: NewEnvironment(r, nil),
+		environments: nil, // Inicialmente nil
+		locals:       map[Expr]int{},
 	}
+	interpreter.environments = interpreter.globals // Aponta para o global no início
 	interpreter.globals.Define("clock", ClockCallable{})
 	return interpreter
 }
@@ -31,6 +34,10 @@ func (i *Interpreter) Interpret(expr []Stmt) {
 func (i *Interpreter) execute(s Stmt) error {
 	s.Accept(i)
 	return nil
+}
+
+func (i *Interpreter) Resolve(expr Expr, depth int) {
+	i.locals[expr] = depth
 }
 
 // ===== Visitor methods =====
@@ -86,8 +93,8 @@ func (i *Interpreter) VisitReturnStmt(stmt *ReturnStmt) any {
 
 func (i *Interpreter) VisitVarStmt(stmt *VarStmt) any {
 	var value any
-	if stmt.Value != nil {
-		value = i.eval(stmt.Value)
+	if stmt.Initializer != nil {
+		value = i.eval(stmt.Initializer)
 		if value != nil {
 			i.runtime.hadRuntimeError = false
 		}
@@ -217,13 +224,26 @@ func (i *Interpreter) VisitBinaryExpr(expr *BinaryExpr) any {
 
 // Placeholder visitors (ainda não implementados)
 func (i *Interpreter) VisitVariableExpr(expr *VariableExpr) any {
-	return i.environments.Get(expr.Name.Lexeme)
+	// return i.environments.Get(expr.Name.Lexeme)
+	return i.lookUpVariable(expr.Name, expr)
+}
+
+func (i *Interpreter) lookUpVariable(t *Token, expr Expr) any {
+	if depth, ok := i.locals[expr]; ok {
+		return i.environments.GetAt(depth, t.Lexeme)
+	}
+	return i.globals.Get(t)
 }
 
 func (i *Interpreter) VisitAssignExpr(expr *AssignExpr) any {
 	value := i.eval(expr.Value)
 
-	i.environments.Assign(expr.Name, value)
+	if d, ok := i.locals[expr]; ok {
+		i.environments.AssignAt(d, expr.Name, value)
+	} else {
+		i.globals.Assign(expr.Name, value)
+	}
+
 	return nil
 }
 
@@ -238,6 +258,7 @@ func (i *Interpreter) VisitCallExpr(expr *CallExpr) any {
 	function, ok := callee.(NoxCallable)
 	if !ok {
 		i.runtime.ReportRuntimeError(expr.Parenthesis, "Can only call functions and classes.")
+		return nil // Corrige panic ao tentar chamar valor não callable
 	}
 
 	if len(arguments) != function.Arity() {
