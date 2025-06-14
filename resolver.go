@@ -93,25 +93,20 @@ func (r *Resolver) ResolveLocalExpr(expr Expr, name *Token) {
 			return
 		}
 	}
-	// r.interpreter.runtime.ReportRuntimeError(name, "Undefined variable: "+name.Lexeme)
 }
 
 func (r *Resolver) ResolveFunction(stmt *FunctionStmt, functionType FunctionType) {
 	enclosingFunction := r.currentFunction
 	r.currentFunction = functionType
+
 	r.BeginScope()
-	// Se for método ou inicializador, define self no escopo
-	if functionType == FunctionTypeMethod || functionType == FunctionTypeInitializer {
-		selfToken := &Token{Lexeme: "self"}
-		r.Declare(selfToken)
-		r.Define(selfToken)
-	}
 	for _, param := range stmt.Parameters {
 		r.Declare(param)
 		r.Define(param)
 	}
 	r.ResolveStatements(stmt.Body)
 	r.EndScope()
+
 	r.currentFunction = enclosingFunction
 }
 
@@ -147,30 +142,6 @@ func (r *Resolver) VisitClassStmt(stmt *ClassStmt) any {
 	r.currentClass = enclosingClass
 	return nil
 }
-
-// func (r *Resolver) VisitClassStmt(stmt *ClassStmt) any {
-// 	enclosingClass := r.currentClass
-// 	r.currentClass = ClassTypeClass
-
-// 	r.Declare(stmt.Name)
-// 	r.Define(stmt.Name)
-
-// 	r.BeginScope()
-// 	if s, ok := r.scopes.Peek(); ok {
-// 		(*s)[stmt.Name.Lexeme] = true
-// 	}
-
-// 	for _, method := range stmt.Methods {
-// 		declaration := FunctionTypeMethod
-// 		if method.Name.Lexeme == "init" {
-// 			declaration = FunctionTypeInitializer
-// 		}
-// 		r.ResolveFunction(method, declaration)
-// 	}
-// 	r.EndScope()
-// 	r.currentClass = enclosingClass
-// 	return nil
-// }
 
 func (r *Resolver) VisitVarStmt(stmt *VarStmt) any {
 	r.Declare(stmt.Name)

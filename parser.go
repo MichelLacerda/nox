@@ -3,8 +3,6 @@ package main
 type Parser struct {
 	tokens  []*Token
 	current int
-	// Patch: armazena o token de self do método atual
-	currentSelfToken *Token
 }
 
 func NewParser(tokens []*Token) *Parser {
@@ -125,12 +123,6 @@ func (p *Parser) Function(kind string) (*FunctionStmt, error) {
 		return nil, err
 	}
 
-	// Patch: define o token de self do método atual
-	oldSelfToken := p.currentSelfToken
-	if kind == "method" || kind == "init" {
-		p.currentSelfToken = &Token{Lexeme: "self"}
-	}
-
 	// Consome o '{' antes do corpo da função
 	if _, err := p.Consume(TokenType_LEFT_BRACE, "Expect '{' before "+kind+" body."); err != nil {
 		return nil, err
@@ -141,14 +133,10 @@ func (p *Parser) Function(kind string) (*FunctionStmt, error) {
 		return nil, err
 	}
 
-	// Patch: restaura o token de self anterior
-	p.currentSelfToken = oldSelfToken
-
 	return &FunctionStmt{
 		Name:       name,
 		Parameters: parameters,
 		Body:       body,
-		// Adicione selfToken se quiser guardar no FunctionStmt
 	}, nil
 }
 

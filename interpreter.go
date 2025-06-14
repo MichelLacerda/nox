@@ -51,21 +51,7 @@ func (i *Interpreter) VisitExpressionStmt(stmt *ExpressionStmt) any {
 }
 
 func (i *Interpreter) VisitFunctionStmt(stmt *FunctionStmt) any {
-	// Procura o token de self no corpo do método
-	var selfToken *Token
-	for _, s := range stmt.Body {
-		if exprStmt, ok := s.(*ExpressionStmt); ok {
-			if selfExpr, ok := exprStmt.Expression.(*SelfExpr); ok {
-				selfToken = selfExpr.Keyword
-				break
-			}
-		}
-	}
-	if selfToken == nil {
-		// fallback: cria um token novo, mas idealmente nunca deve cair aqui
-		selfToken = &Token{Lexeme: "self"}
-	}
-	function := NewFunction(i.runtime, stmt, i.environment, false, selfToken)
+	function := NewFunction(i.runtime, stmt, i.environment, false)
 	i.environment.Define(stmt.Name.Lexeme, function)
 	return nil
 }
@@ -126,40 +112,13 @@ func (i *Interpreter) VisitClassStmt(stmt *ClassStmt) any {
 
 	methods := MethodType{}
 	for _, method := range stmt.Methods {
-		fn := NewFunction(i.runtime, method, i.environment, method.Name.Lexeme == "init", nil)
+		fn := NewFunction(i.runtime, method, i.environment, method.Name.Lexeme == "init")
 		methods[method.Name.Lexeme] = fn
 	}
 	class := NewClass(stmt.Name.Lexeme, methods)
 	i.environment.Assign(stmt.Name, class)
 	return nil
 }
-
-// func (i *Interpreter) VisitClassStmt(stmt *ClassStmt) any {
-// 	i.environment.Define(stmt.Name.Lexeme, nil) // Define a classe antes de instanciá-la
-
-// 	methods := map[string]NoxCallable{}
-// 	for _, method := range stmt.Methods {
-// 		// Procura o token de self no corpo do método
-// 		var selfToken *Token
-// 		for _, s := range method.Body {
-// 			if exprStmt, ok := s.(*ExpressionStmt); ok {
-// 				if selfExpr, ok := exprStmt.Expression.(*SelfExpr); ok {
-// 					selfToken = selfExpr.Keyword
-// 					break
-// 				}
-// 			}
-// 		}
-// 		if selfToken == nil {
-// 			selfToken = &Token{Lexeme: "self"}
-// 		}
-// 		function := NewNoxFunction(i.runtime, method, i.environment, method.Name.Lexeme == "init", selfToken)
-// 		methods[method.Name.Lexeme] = function
-// 	}
-
-// 	class := NewNoxClass(stmt.Name.Lexeme, methods)
-// 	i.environment.Assign(stmt.Name, class)
-// 	return nil
-// }
 
 func (i *Interpreter) executeBlock(statements []Stmt, environment *Environment) error {
 	previous := i.environment
@@ -326,41 +285,10 @@ func (i *Interpreter) VisitCallExpr(expr *CallExpr) any {
 	return callee.Call(i, arguments)
 }
 
-// func (i *Interpreter) VisitCallExpr(expr *CallExpr) any {
-// 	callee := i.evaluate(expr.Callee)
-// 	fmt.Println("Callee:", callee)
-
-// 	var arguments []any
-// 	for idx, arg := range expr.Arguments {
-// 		arguments[idx] = i.evaluate(arg)
-// 	}
-
-// 	if _, ok := callee.(*Callable); ok {
-// 		fmt.Println("Callee is a Callable:", callee)
-// 	}
-
-// 	function, ok := callee.(Function)
-// 	fmt.Println("Function:", function, "OK:", ok, "Arguments:", arguments)
-// 	if !ok {
-// 		i.runtime.ReportRuntimeError(expr.Parenthesis, "Can only call functions and classes.")
-// 		return nil
-// 	}
-
-// 	if len(arguments) != function.Arity() {
-// 		i.runtime.ReportRuntimeError(expr.Parenthesis, fmt.Sprintf("Expected %d arguments but got %d.", function.Arity(), len(arguments)))
-// 		return nil
-// 	}
-
-// 	return function.Call(i, arguments)
-// }
-
 func (i *Interpreter) VisitGetExpr(expr *GetExpr) any {
 	object := i.evaluate(expr.Object)
 	if instance, ok := object.(*Instance); ok {
 		value := instance.Get(expr.Name)
-		// if value == nil {
-		// 	i.runtime.ReportRuntimeError(expr.Name, fmt.Sprintf("Undefined property '%s'.", expr.Name.Lexeme))
-		// }
 		return value
 	}
 	i.runtime.ReportRuntimeError(expr.Name, "Only instances have properties.")

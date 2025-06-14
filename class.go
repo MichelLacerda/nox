@@ -14,11 +14,6 @@ func NewClass(name string, methods MethodType) *Class {
 	}
 }
 
-// func (c *Class) FindMethod(name string) (Function, bool) {
-// 	method, ok := c.Methods[name]
-// 	return method, ok
-// }
-
 func (c *Class) Call(i *Interpreter, args []any) any {
 	instance := NewInstance(c)
 	if initializer, exists := c.FindMethod("init"); exists {
@@ -27,24 +22,6 @@ func (c *Class) Call(i *Interpreter, args []any) any {
 	}
 	return instance
 }
-
-func (c *Class) FindMethod(name string) (*Function, bool) {
-	method, exists := c.Methods[name]
-	return method, exists
-}
-
-// func (c *Class) Call(interpreter *Interpreter, args []any) any {
-// 	instance := NewInstance(c)
-// 	if initializer, exists := c.FindMethod("init"); exists {
-// 		bound := initializer.Bind(instance)
-// 		if callable, ok := bound.(Callable); ok {
-// 			callable.Call(interpreter, args)
-// 		} else {
-// 			panic("Initializer is not callable!")
-// 		}
-// 	}
-// 	return instance
-// }
 
 func (c *Class) Arity() int {
 	if initializer, exists := c.FindMethod("init"); exists {
@@ -60,4 +37,9 @@ func (c *Class) String() string {
 
 func (c *Class) Bind(instance *Instance) Callable {
 	return c
+}
+
+func (c *Class) FindMethod(name string) (*Function, bool) {
+	method, exists := c.Methods[name]
+	return method, exists
 }
