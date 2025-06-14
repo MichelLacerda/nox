@@ -23,9 +23,16 @@ func (s *ResolverStack) Pop() (map[string]bool, bool) {
 	return elem, true
 }
 
-func (s *ResolverStack) Peek() (*map[string]bool, bool) {
+func (s *ResolverStack) Peek() (map[string]bool, bool) {
 	if len(*s) == 0 {
 		return nil, false
 	}
-	return &(*s)[len(*s)-1], true
+	return (*s)[len(*s)-1], true
 }
+
+// func (s *ResolverStack) Peek() (*map[string]bool, bool) {
+// 	if len(*s) == 0 {
+// 		return nil, false
+// 	}
+// 	return &(*s)[len(*s)-1], true
+// }

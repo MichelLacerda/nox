@@ -42,17 +42,16 @@ const (
 	TokenType_CLASS
 	TokenType_ELSE
 	TokenType_FALSE
-	TokenType_FN
+	TokenType_FUNC
 	TokenType_FOR
 	TokenType_IF
 	TokenType_NIL
 	TokenType_OR
 	TokenType_PRINT
 	TokenType_RETURN
+	TokenType_SELF
 	TokenType_SUPER
-	TokenType_THIS
 	TokenType_TRUE
-	// TokenType_VAR
 	TokenType_LET
 	TokenType_WHILE
 	TokenType_THEN
@@ -90,15 +89,15 @@ var TokenTypeNames = map[TokenType]string{
 	TokenType_CLASS:         "CLASS",
 	TokenType_ELSE:          "ELSE",
 	TokenType_FALSE:         "FALSE",
-	TokenType_FN:            "FN",
+	TokenType_FUNC:          "FUNC",
 	TokenType_FOR:           "FOR",
 	TokenType_IF:            "IF",
 	TokenType_NIL:           "NIL",
 	TokenType_OR:            "OR",
 	TokenType_PRINT:         "PRINT",
 	TokenType_RETURN:        "RETURN",
+	TokenType_SELF:          "SELF",
 	TokenType_SUPER:         "SUPER",
-	TokenType_THIS:          "THIS",
 	TokenType_TRUE:          "TRUE",
 	TokenType_LET:           "LET",
 	TokenType_THEN:          "THEN",

@@ -7,20 +7,20 @@ import (
 )
 
 type Interpreter struct {
-	runtime      *Nox
-	globals      *Environment
-	locals       map[Expr]int
-	environments *Environment
+	runtime     *Nox
+	globals     *Environment
+	locals      map[Expr]int
+	environment *Environment
 }
 
 func NewInterpreter(r *Nox) *Interpreter {
 	interpreter := &Interpreter{
-		runtime:      r,
-		globals:      NewEnvironment(r, nil),
-		environments: nil, // Inicialmente nil
-		locals:       map[Expr]int{},
+		runtime:     r,
+		globals:     NewEnvironment(r, nil),
+		environment: nil, // Inicialmente nil
+		locals:      map[Expr]int{},
 	}
-	interpreter.environments = interpreter.globals // Aponta para o global no início
+	interpreter.environment = interpreter.globals // Aponta para o global no início
 	interpreter.globals.Define("clock", ClockCallable{})
 	return interpreter
 }
@@ -43,7 +43,7 @@ func (i *Interpreter) Resolve(expr Expr, depth int) {
 // ===== Visitor methods =====
 
 func (i *Interpreter) VisitExpressionStmt(stmt *ExpressionStmt) any {
-	result := i.eval(stmt.Expression)
+	result := i.evaluate(stmt.Expression)
 	if result != nil {
 		i.runtime.hadRuntimeError = false
 	}
@@ -51,13 +51,27 @@ func (i *Interpreter) VisitExpressionStmt(stmt *ExpressionStmt) any {
 }
 
 func (i *Interpreter) VisitFunctionStmt(stmt *FunctionStmt) any {
-	function := NewNoxFunction(stmt, i.environments)
-	i.environments.Define(stmt.Name.Lexeme, function)
+	// Procura o token de self no corpo do método
+	var selfToken *Token
+	for _, s := range stmt.Body {
+		if exprStmt, ok := s.(*ExpressionStmt); ok {
+			if selfExpr, ok := exprStmt.Expression.(*SelfExpr); ok {
+				selfToken = selfExpr.Keyword
+				break
+			}
+		}
+	}
+	if selfToken == nil {
+		// fallback: cria um token novo, mas idealmente nunca deve cair aqui
+		selfToken = &Token{Lexeme: "self"}
+	}
+	function := NewFunction(i.runtime, stmt, i.environment, false, selfToken)
+	i.environment.Define(stmt.Name.Lexeme, function)
 	return nil
 }
 
 func (i *Interpreter) VisitIfStmt(stmt *IfStmt) any {
-	condition := i.eval(stmt.Condition)
+	condition := i.evaluate(stmt.Condition)
 
 	if i.isTruthy(condition) {
 		i.execute(stmt.Then)
@@ -69,7 +83,7 @@ func (i *Interpreter) VisitIfStmt(stmt *IfStmt) any {
 }
 
 func (i *Interpreter) VisitPrintStmt(stmt *PrintStmt) any {
-	result := i.eval(stmt.Expression)
+	result := i.evaluate(stmt.Expression)
 	if result != nil {
 		i.runtime.hadRuntimeError = false
 	}
@@ -81,44 +95,81 @@ func (i *Interpreter) VisitReturnStmt(stmt *ReturnStmt) any {
 	var value any
 
 	if stmt.Value != nil {
-		value = i.eval(stmt.Value)
+		value = i.evaluate(stmt.Value)
 	}
 
 	if value != nil {
 		i.runtime.hadRuntimeError = false
 	}
-
-	panic(Return{Value: value})
+	return nil
 }
 
 func (i *Interpreter) VisitVarStmt(stmt *VarStmt) any {
 	var value any
 	if stmt.Initializer != nil {
-		value = i.eval(stmt.Initializer)
+		value = i.evaluate(stmt.Initializer)
 		if value != nil {
 			i.runtime.hadRuntimeError = false
 		}
 	}
-	i.environments.Define(stmt.Name.Lexeme, value)
+	i.environment.Define(stmt.Name.Lexeme, value)
 	return nil
 }
 
 func (i *Interpreter) VisitBlockStmt(stmt *BlockStmt) any {
-	i.executeBlock(stmt.Statements, NewEnvironment(i.runtime, i.environments))
+	i.executeBlock(stmt.Statements, NewEnvironment(i.runtime, i.environment))
 	return nil
 }
 
+func (i *Interpreter) VisitClassStmt(stmt *ClassStmt) any {
+	i.environment.Define(stmt.Name.Lexeme, nil) // Define a classe antes de instanciá-la
+
+	methods := MethodType{}
+	for _, method := range stmt.Methods {
+		fn := NewFunction(i.runtime, method, i.environment, method.Name.Lexeme == "init", nil)
+		methods[method.Name.Lexeme] = fn
+	}
+	class := NewClass(stmt.Name.Lexeme, methods)
+	i.environment.Assign(stmt.Name, class)
+	return nil
+}
+
+// func (i *Interpreter) VisitClassStmt(stmt *ClassStmt) any {
+// 	i.environment.Define(stmt.Name.Lexeme, nil) // Define a classe antes de instanciá-la
+
+// 	methods := map[string]NoxCallable{}
+// 	for _, method := range stmt.Methods {
+// 		// Procura o token de self no corpo do método
+// 		var selfToken *Token
+// 		for _, s := range method.Body {
+// 			if exprStmt, ok := s.(*ExpressionStmt); ok {
+// 				if selfExpr, ok := exprStmt.Expression.(*SelfExpr); ok {
+// 					selfToken = selfExpr.Keyword
+// 					break
+// 				}
+// 			}
+// 		}
+// 		if selfToken == nil {
+// 			selfToken = &Token{Lexeme: "self"}
+// 		}
+// 		function := NewNoxFunction(i.runtime, method, i.environment, method.Name.Lexeme == "init", selfToken)
+// 		methods[method.Name.Lexeme] = function
+// 	}
+
+// 	class := NewNoxClass(stmt.Name.Lexeme, methods)
+// 	i.environment.Assign(stmt.Name, class)
+// 	return nil
+// }
+
 func (i *Interpreter) executeBlock(statements []Stmt, environment *Environment) error {
-	previous := i.environments
-	i.environments = environment
+	previous := i.environment
+	i.environment = environment
 	defer func() {
-		i.environments = previous
+		i.environment = previous
 	}()
 
-	for _, statement := range statements {
-		if err := i.execute(statement); err != nil {
-			return err
-		}
+	for _, stmt := range statements {
+		i.execute(stmt)
 	}
 
 	return nil
@@ -129,11 +180,11 @@ func (i *Interpreter) VisitLiteralExpr(expr *LiteralExpr) any {
 }
 
 func (i *Interpreter) VisitGroupingExpr(expr *GroupingExpr) any {
-	return i.eval(expr.Expression)
+	return i.evaluate(expr.Expression)
 }
 
 func (i *Interpreter) VisitUnaryExpr(expr *UnaryExpr) any {
-	right := i.eval(expr.Right)
+	right := i.evaluate(expr.Right)
 
 	switch expr.Operator.Type {
 	case TokenType_MINUS:
@@ -148,8 +199,8 @@ func (i *Interpreter) VisitUnaryExpr(expr *UnaryExpr) any {
 }
 
 func (i *Interpreter) VisitBinaryExpr(expr *BinaryExpr) any {
-	left := i.eval(expr.Left)
-	right := i.eval(expr.Right)
+	left := i.evaluate(expr.Left)
+	right := i.evaluate(expr.Right)
 
 	switch expr.Operator.Type {
 	case TokenType_MINUS:
@@ -230,16 +281,16 @@ func (i *Interpreter) VisitVariableExpr(expr *VariableExpr) any {
 
 func (i *Interpreter) lookUpVariable(t *Token, expr Expr) any {
 	if depth, ok := i.locals[expr]; ok {
-		return i.environments.GetAt(depth, t.Lexeme)
+		return i.environment.GetAt(depth, t.Lexeme)
 	}
 	return i.globals.Get(t)
 }
 
 func (i *Interpreter) VisitAssignExpr(expr *AssignExpr) any {
-	value := i.eval(expr.Value)
+	value := i.evaluate(expr.Value)
 
 	if d, ok := i.locals[expr]; ok {
-		i.environments.AssignAt(d, expr.Name, value)
+		i.environment.AssignAt(d, expr.Name, value)
 	} else {
 		i.globals.Assign(expr.Name, value)
 	}
@@ -248,39 +299,89 @@ func (i *Interpreter) VisitAssignExpr(expr *AssignExpr) any {
 }
 
 func (i *Interpreter) VisitCallExpr(expr *CallExpr) any {
-	callee := i.eval(expr.Callee)
+	callee := i.evaluate(expr.Callee).(Callable)
 
-	arguments := make([]any, len(expr.Arguments))
-	for idx, arg := range expr.Arguments {
-		arguments[idx] = i.eval(arg)
+	// Avalia os argumentos em ordem
+	var arguments []any
+	for _, argument := range expr.Arguments {
+		arguments = append(arguments, i.evaluate(argument))
 	}
 
-	function, ok := callee.(NoxCallable)
-	if !ok {
-		i.runtime.ReportRuntimeError(expr.Parenthesis, "Can only call functions and classes.")
-		return nil // Corrige panic ao tentar chamar valor não callable
+	// // Verifica se o callee implementa a interface LoxCallable
+	// function, ok := callee.(Callable)
+	// fmt.Println("[DEBUG] calle:", callee, "arguments:", arguments, "ok:", ok)
+	// if !ok {
+	// 	panic(NewRuntimeError(expr.Parenthesis, "Can only call functions and classes."))
+	// }
+
+	// Verifica aridade
+	if len(arguments) != callee.Arity() {
+		panic(NewRuntimeError(expr.Parenthesis, fmt.Sprintf(
+			"Expected %d arguments but got %d.",
+			callee.Arity(), len(arguments),
+		)))
 	}
 
-	if len(arguments) != function.Arity() {
-		i.runtime.ReportRuntimeError(expr.Parenthesis, fmt.Sprintf("Expected %d arguments but got %d.", function.Arity(), len(arguments)))
-		return nil
-	}
-
-	return function.Call(i, arguments)
+	// Faz a chamada
+	return callee.Call(i, arguments)
 }
 
+// func (i *Interpreter) VisitCallExpr(expr *CallExpr) any {
+// 	callee := i.evaluate(expr.Callee)
+// 	fmt.Println("Callee:", callee)
+
+// 	var arguments []any
+// 	for idx, arg := range expr.Arguments {
+// 		arguments[idx] = i.evaluate(arg)
+// 	}
+
+// 	if _, ok := callee.(*Callable); ok {
+// 		fmt.Println("Callee is a Callable:", callee)
+// 	}
+
+// 	function, ok := callee.(Function)
+// 	fmt.Println("Function:", function, "OK:", ok, "Arguments:", arguments)
+// 	if !ok {
+// 		i.runtime.ReportRuntimeError(expr.Parenthesis, "Can only call functions and classes.")
+// 		return nil
+// 	}
+
+// 	if len(arguments) != function.Arity() {
+// 		i.runtime.ReportRuntimeError(expr.Parenthesis, fmt.Sprintf("Expected %d arguments but got %d.", function.Arity(), len(arguments)))
+// 		return nil
+// 	}
+
+// 	return function.Call(i, arguments)
+// }
+
 func (i *Interpreter) VisitGetExpr(expr *GetExpr) any {
-	log.Panic("VisitGetExpr not implemented yet.")
+	object := i.evaluate(expr.Object)
+	if instance, ok := object.(*Instance); ok {
+		value := instance.Get(expr.Name)
+		// if value == nil {
+		// 	i.runtime.ReportRuntimeError(expr.Name, fmt.Sprintf("Undefined property '%s'.", expr.Name.Lexeme))
+		// }
+		return value
+	}
+	i.runtime.ReportRuntimeError(expr.Name, "Only instances have properties.")
 	return nil
 }
 
 func (i *Interpreter) VisitSetExpr(expr *SetExpr) any {
-	log.Panic("VisitSetExpr not implemented yet.")
+	object := i.evaluate(expr.Object)
+
+	if instance, ok := object.(*Instance); ok {
+		value := i.evaluate(expr.Value)
+		instance.Set(expr.Name, value)
+		return value
+	}
+
+	i.runtime.ReportRuntimeError(expr.Name, "Only instances have properties.")
 	return nil
 }
 
 func (i *Interpreter) VisitLogicalExpr(expr *LogicalExpr) any {
-	left := i.eval(expr.Left)
+	left := i.evaluate(expr.Left)
 
 	if expr.Operator.Type == TokenType_OR {
 		if i.isTruthy(left) {
@@ -292,7 +393,7 @@ func (i *Interpreter) VisitLogicalExpr(expr *LogicalExpr) any {
 		}
 	}
 
-	return i.eval(expr.Right)
+	return i.evaluate(expr.Right)
 }
 
 func (i *Interpreter) VisitSuperExpr(expr *SuperExpr) any {
@@ -300,16 +401,15 @@ func (i *Interpreter) VisitSuperExpr(expr *SuperExpr) any {
 	return nil
 }
 
-func (i *Interpreter) VisitThisExpr(expr *ThisExpr) any {
-	log.Panic("VisitThisExpr not implemented yet.")
-	return nil
+func (i *Interpreter) VisitSelfExpr(expr *SelfExpr) any {
+	return i.lookUpVariable(expr.Keyword, expr)
 }
 
 func (i *Interpreter) VisitWhileStmt(stmt *WhileStmt) any {
-	previous := i.environments
-	defer func() { i.environments = previous }()
+	previous := i.environment
+	defer func() { i.environment = previous }()
 
-	for i.isTruthy(i.eval(stmt.Condition)) {
+	for i.isTruthy(i.evaluate(stmt.Condition)) {
 		i.execute(stmt.Body)
 		if i.runtime.hadRuntimeError {
 			return nil
@@ -320,7 +420,7 @@ func (i *Interpreter) VisitWhileStmt(stmt *WhileStmt) any {
 
 // ===== Helpers =====
 
-func (i *Interpreter) eval(expr Expr) any {
+func (i *Interpreter) evaluate(expr Expr) any {
 	return expr.Accept(i)
 }
 

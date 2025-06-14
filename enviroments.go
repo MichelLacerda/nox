@@ -26,12 +26,30 @@ func (e *Environment) Get(t *Token) any {
 	if value, exists := e.Values[t.Lexeme]; exists {
 		return value
 	}
+	// Fallback: se for self, tenta buscar por nome
+	if t.Lexeme == "self" {
+		if value, exists := e.Values["self"]; exists {
+			return value
+		}
+	}
 
 	if e.Enclosing != nil {
 		return e.Enclosing.Get(t)
 	}
 
 	e.runtime.ReportRuntimeError(&Token{Lexeme: t.Lexeme}, "Undefined variable: "+t.Lexeme)
+	return nil
+}
+
+// Busca uma variável por nome, ignorando o token (usado para self em inicializadores)
+func (e *Environment) GetByName(name string) any {
+	if value, exists := e.Values[name]; exists {
+		return value
+	}
+	if e.Enclosing != nil {
+		return e.Enclosing.GetByName(name)
+	}
+	e.runtime.ReportRuntimeError(&Token{Lexeme: name}, "Undefined variable: "+name)
 	return nil
 }
 

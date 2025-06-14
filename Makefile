@@ -15,3 +15,7 @@ clean:
 .PHONY: run
 run: build
 	./nox.exe
+
+.PHONY: stats
+stats:
+	cloc . --exclude-dir=vendor,assets,docs,examples,tests

@@ -47,15 +47,15 @@ func (l *LogicalExpr) String() string {
 }
 
 func (s *SetExpr) String() string {
-	return parenthesize("set "+s.Name, s.Object, s.Value)
+	return parenthesize("set "+s.Name.Lexeme, s.Object, s.Value)
 }
 
 func (s *SuperExpr) String() string {
 	return fmt.Sprintf("super %s", s.Method)
 }
 
-func (t *ThisExpr) String() string {
-	return "this"
+func (t *SelfExpr) String() string {
+	return "self"
 }
 
 func (u *UnaryExpr) String() string {

@@ -1,0 +1,14 @@
+class Entity {
+  init() {
+    print "Entity initialized";
+  }
+  attack() {
+    return "Attacking!";
+  }
+}
+
+let entity = Entity();
+print entity.init();
+// print entity.init(); // Output: Entity initialized
+// print entity; // <instance of Entity>
+// print entity.attack(); // Output: Attacking!

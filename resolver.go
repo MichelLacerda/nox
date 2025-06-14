@@ -1,23 +1,36 @@
 package main
 
-type Resolver struct {
-	interpreter     *Interpreter
-	scopes          ResolverStack
-	currentFunction FunctionType
-}
-
 type FunctionType int
 
 const (
 	FunctionTypeNone FunctionType = iota
 	FunctionTypeFunction
+	FunctionTypeInitializer
+	FunctionTypeMethod
 )
+
+type ClassType int
+
+const (
+	ClassTypeNone ClassType = iota
+	ClassTypeClass
+	// ClassTypeSubclass
+	// ClassTypeInterface
+)
+
+type Resolver struct {
+	interpreter     *Interpreter
+	scopes          ResolverStack
+	currentFunction FunctionType
+	currentClass    ClassType
+}
 
 func NewResolver(interpreter *Interpreter) *Resolver {
 	return &Resolver{
 		interpreter:     interpreter,
 		scopes:          ResolverStack{},
 		currentFunction: FunctionTypeNone,
+		currentClass:    ClassTypeNone,
 	}
 }
 
@@ -51,12 +64,12 @@ func (r *Resolver) Declare(name *Token) {
 
 	scope, _ := r.scopes.Peek()
 
-	if _, exists := (*scope)[name.Lexeme]; exists {
+	if _, exists := scope[name.Lexeme]; exists {
 		r.interpreter.runtime.ReportRuntimeError(name, "Variable already defined: "+name.Lexeme)
 		return
 	}
 
-	(*scope)[name.Lexeme] = false
+	scope[name.Lexeme] = false
 }
 
 func (r *Resolver) Define(name *Token) {
@@ -65,7 +78,7 @@ func (r *Resolver) Define(name *Token) {
 	}
 
 	scope, _ := r.scopes.Peek()
-	(*scope)[name.Lexeme] = true
+	scope[name.Lexeme] = true
 }
 
 func (r *Resolver) ResolveLocalExpr(expr Expr, name *Token) {
@@ -87,6 +100,12 @@ func (r *Resolver) ResolveFunction(stmt *FunctionStmt, functionType FunctionType
 	enclosingFunction := r.currentFunction
 	r.currentFunction = functionType
 	r.BeginScope()
+	// Se for método ou inicializador, define self no escopo
+	if functionType == FunctionTypeMethod || functionType == FunctionTypeInitializer {
+		selfToken := &Token{Lexeme: "self"}
+		r.Declare(selfToken)
+		r.Define(selfToken)
+	}
 	for _, param := range stmt.Parameters {
 		r.Declare(param)
 		r.Define(param)
@@ -105,6 +124,54 @@ func (r *Resolver) VisitBlockStmt(stmt *BlockStmt) any {
 	return nil
 }
 
+func (r *Resolver) VisitClassStmt(stmt *ClassStmt) any {
+	enclosingClass := r.currentClass
+	r.currentClass = ClassTypeClass
+
+	r.Declare(stmt.Name)
+	r.Define(stmt.Name)
+
+	for _, method := range stmt.Methods {
+		if method.Name.Lexeme == "init" {
+			r.ResolveFunction(method, FunctionTypeInitializer)
+		} else {
+			r.ResolveFunction(method, FunctionTypeMethod)
+		}
+	}
+
+	r.BeginScope()
+	if s, ok := r.scopes.Peek(); ok {
+		s[stmt.Name.Lexeme] = true
+	}
+	r.EndScope()
+	r.currentClass = enclosingClass
+	return nil
+}
+
+// func (r *Resolver) VisitClassStmt(stmt *ClassStmt) any {
+// 	enclosingClass := r.currentClass
+// 	r.currentClass = ClassTypeClass
+
+// 	r.Declare(stmt.Name)
+// 	r.Define(stmt.Name)
+
+// 	r.BeginScope()
+// 	if s, ok := r.scopes.Peek(); ok {
+// 		(*s)[stmt.Name.Lexeme] = true
+// 	}
+
+// 	for _, method := range stmt.Methods {
+// 		declaration := FunctionTypeMethod
+// 		if method.Name.Lexeme == "init" {
+// 			declaration = FunctionTypeInitializer
+// 		}
+// 		r.ResolveFunction(method, declaration)
+// 	}
+// 	r.EndScope()
+// 	r.currentClass = enclosingClass
+// 	return nil
+// }
+
 func (r *Resolver) VisitVarStmt(stmt *VarStmt) any {
 	r.Declare(stmt.Name)
 	if stmt.Initializer != nil {
@@ -117,7 +184,7 @@ func (r *Resolver) VisitVarStmt(stmt *VarStmt) any {
 func (r *Resolver) VisitVariableExpr(expr *VariableExpr) any {
 	if !r.scopes.IsEmpty() {
 		scope, _ := r.scopes.Peek()
-		if declared, exists := (*scope)[expr.Name.Lexeme]; exists && !declared {
+		if declared, exists := scope[expr.Name.Lexeme]; exists && !declared {
 			r.interpreter.runtime.ReportRuntimeError(expr.Name, "Cannot read local variable in its own initializer.")
 		}
 	}
@@ -165,6 +232,9 @@ func (r *Resolver) VisitReturnStmt(stmt *ReturnStmt) any {
 	}
 
 	if stmt.Value != nil {
+		if r.currentFunction == FunctionTypeInitializer {
+			r.interpreter.runtime.ReportRuntimeError(stmt.Keyword, "Cannot return a value from an initializer.")
+		}
 		r.ResolveExpr(stmt.Value)
 	}
 	return nil
@@ -210,22 +280,27 @@ func (r *Resolver) VisitUnaryExpr(expr *UnaryExpr) any {
 	return nil
 }
 
-// VisitGetExpr implements ExprVisitor.
 func (r *Resolver) VisitGetExpr(expr *GetExpr) any {
-	panic("unimplemented")
+	r.ResolveExpr(expr.Object)
+	return nil
 }
 
-// VisitSetExpr implements ExprVisitor.
 func (r *Resolver) VisitSetExpr(expr *SetExpr) any {
-	panic("unimplemented")
+	r.ResolveExpr(expr.Object)
+	r.ResolveExpr(expr.Value)
+	return nil
 }
 
-// VisitSuperExpr implements ExprVisitor.
 func (r *Resolver) VisitSuperExpr(expr *SuperExpr) any {
 	panic("unimplemented")
 }
 
-// VisitThisExpr implements ExprVisitor.
-func (r *Resolver) VisitThisExpr(expr *ThisExpr) any {
-	panic("unimplemented")
+func (r *Resolver) VisitSelfExpr(expr *SelfExpr) any {
+	if r.currentClass == ClassTypeNone {
+		r.interpreter.runtime.ReportRuntimeError(expr.Keyword, "Cannot use 'self' outside of a class.")
+		return nil
+	}
+
+	r.ResolveLocalExpr(expr, expr.Keyword)
+	return nil
 }

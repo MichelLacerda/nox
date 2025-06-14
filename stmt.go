@@ -2,7 +2,7 @@ package main
 
 type StmtVisitor interface {
 	VisitBlockStmt(stmt *BlockStmt) any
-	//VisitClassStmt(stmt *ClassStmt) any
+	VisitClassStmt(stmt *ClassStmt) any
 	VisitExpressionStmt(stmt *ExpressionStmt) any
 	VisitFunctionStmt(stmt *FunctionStmt) any
 	VisitIfStmt(stmt *IfStmt) any
@@ -34,6 +34,40 @@ func (b *BlockStmt) Accept(visitor StmtVisitor) any {
 	return visitor.VisitBlockStmt(b)
 }
 
+// ClassStmt represents a class declaration statement in the language.
+type ClassStmt struct {
+	Name       *Token
+	Superclass *VariableExpr
+	Methods    []*FunctionStmt
+}
+
+func NewClassStmt(name *Token, superclass *VariableExpr, methods []*FunctionStmt) *ClassStmt {
+	return &ClassStmt{
+		Name:       name,
+		Superclass: superclass,
+		Methods:    methods,
+	}
+}
+
+// Accept implements Stmt.
+func (c *ClassStmt) Accept(visitor StmtVisitor) any {
+	return visitor.VisitClassStmt(c)
+}
+
+// String implements Stmt.
+func (c *ClassStmt) String() string {
+	result := "class " + c.Name.Lexeme
+	// if c.Superclass != nil {
+	// 	result += " < " + c.Superclass.Name.Lexeme
+	// }
+	result += " {\n"
+	for _, method := range c.Methods {
+		result += method.String() + "\n"
+	}
+	result += "}"
+	return result
+}
+
 // VarStmt represents a variable declaration statement in the language.
 type ExpressionStmt struct {
 	Expression Expr
@@ -55,19 +89,19 @@ type FunctionStmt struct {
 }
 
 func (f *FunctionStmt) String() string {
-	result := "fun " + f.Name.Lexeme + "("
-	for i, param := range f.Parameters {
-		if i > 0 {
-			result += ", "
-		}
-		result += param.Lexeme
-	}
-	result += ") {\n"
-	for _, stmt := range f.Body {
-		result += stmt.String() + "\n"
-	}
-	result += "}"
-	return result
+	// result := "func " + f.Name.Lexeme + "("
+	// for i, param := range f.Parameters {
+	// 	if i > 0 {
+	// 		result += ", "
+	// 	}
+	// 	result += param.Lexeme
+	// }
+	// result += ") {\n"
+	// for _, stmt := range f.Body {
+	// 	result += stmt.String() + "\n"
+	// }
+	// result += "}"
+	return "<function " + f.Name.Lexeme + ">"
 }
 
 func (f *FunctionStmt) Accept(visitor StmtVisitor) any {

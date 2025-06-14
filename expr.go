@@ -12,7 +12,7 @@ type ExprVisitor interface {
 	VisitSetExpr(expr *SetExpr) any
 	VisitLogicalExpr(expr *LogicalExpr) any
 	VisitSuperExpr(expr *SuperExpr) any
-	VisitThisExpr(expr *ThisExpr) any
+	VisitSelfExpr(expr *SelfExpr) any
 }
 type Expr interface {
 	String() string
@@ -50,7 +50,7 @@ func (c *CallExpr) Accept(visitor ExprVisitor) any {
 
 type GetExpr struct {
 	Object Expr
-	Name   string
+	Name   *Token
 }
 
 func (g *GetExpr) Accept(visitor ExprVisitor) any {
@@ -85,7 +85,7 @@ func (l *LogicalExpr) Accept(visitor ExprVisitor) any {
 
 type SetExpr struct {
 	Object Expr
-	Name   string
+	Name   *Token
 	Value  Expr
 }
 
@@ -101,10 +101,12 @@ func (s *SuperExpr) Accept(visitor ExprVisitor) any {
 	return visitor.VisitSuperExpr(s)
 }
 
-type ThisExpr struct{}
+type SelfExpr struct {
+	Keyword *Token // The 'self' keyword
+}
 
-func (t *ThisExpr) Accept(visitor ExprVisitor) any {
-	return visitor.VisitThisExpr(t)
+func (t *SelfExpr) Accept(visitor ExprVisitor) any {
+	return visitor.VisitSelfExpr(t)
 }
 
 type UnaryExpr struct {

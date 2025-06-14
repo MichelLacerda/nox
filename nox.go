@@ -40,6 +40,13 @@ func (e RuntimeError) Error() string {
 	return e.Message
 }
 
+func NewRuntimeError(token *Token, message string) RuntimeError {
+	return RuntimeError{
+		Token:   token,
+		Message: message,
+	}
+}
+
 func (n *Nox) ReportError(line int, where, message string) {
 	fmt.Printf("[line %d] Error%s: %s\n", line, where, message)
 }

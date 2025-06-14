@@ -3,6 +3,8 @@ package main
 type Parser struct {
 	tokens  []*Token
 	current int
+	// Patch: armazena o token de self do método atual
+	currentSelfToken *Token
 }
 
 func NewParser(tokens []*Token) *Parser {
@@ -29,7 +31,15 @@ func (p *Parser) Parse() ([]Stmt, error) {
 }
 
 func (p *Parser) declaration() (Stmt, error) {
-	if p.Match(TokenType_FN) {
+	if p.Match(TokenType_CLASS) {
+		stmt, err := p.ClassDeclaration()
+		if err != nil {
+			return nil, err
+		}
+		return stmt, nil
+	}
+
+	if p.Match(TokenType_FUNC) {
 		stmt, err := p.Function("function")
 
 		if err != nil {
@@ -54,9 +64,37 @@ func (p *Parser) declaration() (Stmt, error) {
 	return stmt, nil
 }
 
-func (p *Parser) Function(kind string) (Stmt, error) {
-	name, err := p.Consume(TokenType_IDENTIFIER, "Expect "+kind+" name.")
+func (p *Parser) ClassDeclaration() (Stmt, error) {
+	name, err := p.Consume(TokenType_IDENTIFIER, "Expect class name.")
 
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err := p.Consume(TokenType_LEFT_BRACE, "Expect '{' before class body."); err != nil {
+		return nil, err
+	}
+
+	methods := []*FunctionStmt{}
+	for !p.IsAtEnd() && !p.Check(TokenType_RIGHT_BRACE) {
+		funcStmt, err := p.Function("method")
+
+		if err != nil {
+			return nil, err
+		}
+
+		methods = append(methods, funcStmt)
+	}
+
+	if _, err := p.Consume(TokenType_RIGHT_BRACE, "Expect '}' after class body."); err != nil {
+		return nil, err
+	}
+
+	return NewClassStmt(name, nil, methods), nil
+}
+
+func (p *Parser) Function(kind string) (*FunctionStmt, error) {
+	name, err := p.Consume(TokenType_IDENTIFIER, "Expect "+kind+" name.")
 	if err != nil {
 		return nil, err
 	}
@@ -87,6 +125,12 @@ func (p *Parser) Function(kind string) (Stmt, error) {
 		return nil, err
 	}
 
+	// Patch: define o token de self do método atual
+	oldSelfToken := p.currentSelfToken
+	if kind == "method" || kind == "init" {
+		p.currentSelfToken = &Token{Lexeme: "self"}
+	}
+
 	// Consome o '{' antes do corpo da função
 	if _, err := p.Consume(TokenType_LEFT_BRACE, "Expect '{' before "+kind+" body."); err != nil {
 		return nil, err
@@ -97,10 +141,14 @@ func (p *Parser) Function(kind string) (Stmt, error) {
 		return nil, err
 	}
 
+	// Patch: restaura o token de self anterior
+	p.currentSelfToken = oldSelfToken
+
 	return &FunctionStmt{
 		Name:       name,
 		Parameters: parameters,
 		Body:       body,
+		// Adicione selfToken se quiser guardar no FunctionStmt
 	}, nil
 }
 
@@ -397,6 +445,12 @@ func (p *Parser) Assignment() (Expr, error) {
 				Name:  varExpr.Name,
 				Value: value,
 			}, nil
+		} else if getExpr, ok := expr.(*GetExpr); ok {
+			return &SetExpr{
+				Object: getExpr.Object,
+				Name:   getExpr.Name,
+				Value:  value,
+			}, nil
 		}
 
 		return nil, ParserError{
@@ -575,12 +629,25 @@ func (p *Parser) Call() (Expr, error) {
 		return nil, err
 	}
 
-	for p.Match(TokenType_LEFT_PAREN) {
-		exprCall, err := p.FinishCall(expr)
-		if err != nil {
-			return nil, err
+	for {
+		if p.Match(TokenType_LEFT_PAREN) {
+			exprCall, err := p.FinishCall(expr)
+			if err != nil {
+				return nil, err
+			}
+			expr = exprCall
+		} else if p.Match(TokenType_DOT) {
+			token, err := p.Consume(TokenType_IDENTIFIER, "Expect property name after '.'.")
+			if err != nil {
+				return nil, err
+			}
+			expr = &GetExpr{
+				Object: expr,
+				Name:   token,
+			}
+		} else {
+			break
 		}
-		expr = exprCall
 	}
 	return expr, nil
 }
@@ -638,6 +705,10 @@ func (p *Parser) Primary() (Expr, error) {
 
 	if p.Match(TokenType_NUMBER, TokenType_STRING) {
 		return &LiteralExpr{Value: p.Previous().Literal}, nil
+	}
+
+	if p.Match(TokenType_SELF) {
+		return &SelfExpr{Keyword: p.Previous()}, nil
 	}
 
 	if p.Match(TokenType_IDENTIFIER) {
@@ -722,7 +793,7 @@ func (p *Parser) Synchronize() {
 		switch p.Peek().Type {
 		case
 			TokenType_CLASS,
-			TokenType_FN,
+			TokenType_FUNC,
 			TokenType_LET,
 			TokenType_IF,
 			TokenType_FOR,
