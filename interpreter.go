@@ -82,12 +82,13 @@ func (i *Interpreter) VisitReturnStmt(stmt *ReturnStmt) any {
 
 	if stmt.Value != nil {
 		value = i.evaluate(stmt.Value)
+		if value != nil {
+			i.runtime.hadRuntimeError = false
+		}
 	}
 
-	if value != nil {
-		i.runtime.hadRuntimeError = false
-	}
-	return nil
+	// Encerra a execução da função com um "Return" (que será capturado via recover)
+	panic(Return{Value: value})
 }
 
 func (i *Interpreter) VisitVarStmt(stmt *VarStmt) any {
@@ -276,16 +277,14 @@ func (i *Interpreter) VisitAssignExpr(expr *AssignExpr) any {
 func (i *Interpreter) VisitCallExpr(expr *CallExpr) any {
 	callee := i.evaluate(expr.Callee)
 
-	// Avalia os argumentos em ordem
 	var arguments []any
 	for _, argument := range expr.Arguments {
 		arguments = append(arguments, i.evaluate(argument))
 	}
 
-	// Verifica aridade
 	callable, ok := callee.(Callable)
 	if !ok {
-		i.runtime.ReportRuntimeError(expr.Parenthesis, "Callee não é chamável.")
+		i.runtime.ReportRuntimeError(expr.Parenthesis, "Can only call functions and classes.")
 		return nil
 	}
 
@@ -297,9 +296,7 @@ func (i *Interpreter) VisitCallExpr(expr *CallExpr) any {
 		return nil
 	}
 
-	// Faz a chamada
-	result := callable.Call(i, arguments)
-	return result
+	return callable.Call(i, arguments)
 }
 
 func (i *Interpreter) VisitGetExpr(expr *GetExpr) any {
@@ -308,6 +305,11 @@ func (i *Interpreter) VisitGetExpr(expr *GetExpr) any {
 		value := instance.Get(expr.Name)
 		return value
 	}
+
+	if instance, ok := object.(*Instance); ok {
+		return instance.Get(expr.Name)
+	}
+
 	i.runtime.ReportRuntimeError(expr.Name, "Only instances have properties.")
 	return nil
 }
@@ -347,8 +349,8 @@ func (i *Interpreter) VisitSuperExpr(expr *SuperExpr) any {
 }
 
 func (i *Interpreter) VisitSelfExpr(expr *SelfExpr) any {
-	// Ensure `self` is resolved correctly in the current environment
-	return i.lookUpVariable(expr.Keyword, expr)
+	value := i.lookUpVariable(expr.Keyword, expr)
+	return value
 }
 
 func (i *Interpreter) VisitWhileStmt(stmt *WhileStmt) any {

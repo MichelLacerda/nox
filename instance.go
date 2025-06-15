@@ -22,7 +22,8 @@ func (i *Instance) Get(name *Token) any {
 	}
 
 	if method, exists := i.FindMethod(name.Lexeme); exists {
-		return method.Bind(i)
+		bound := method.Bind(i)
+		return bound
 	}
 
 	panic(RuntimeError{
@@ -38,18 +39,6 @@ func (i *Instance) FindMethod(name string) (*Function, bool) {
 	return nil, false
 }
 
-// func (i *Instance) Set(name *Token, value any) {
-// 	i.Fields[name.Lexeme] = value
-// }
-
 func (i *Instance) Set(name *Token, value any) {
-	// Protege métodos
-	if _, isMethod := i.Class.Methods[name.Lexeme]; isMethod {
-		panic(RuntimeError{
-			Token:   name,
-			Message: "Cannot overwrite method '" + name.Lexeme + "' with a field.",
-		})
-	}
-
 	i.Fields[name.Lexeme] = value
 }

@@ -21,7 +21,6 @@ func NewFunction(r *Nox, declaration *FunctionStmt, closure *Environment, isInit
 }
 
 func (f *Function) Call(i *Interpreter, args []any) (result any) {
-	// CORRIGIDO: cria novo escopo para execução
 	environment := NewEnvironment(f.runtime, f.closure)
 
 	if len(args) != f.Arity() {
@@ -62,16 +61,16 @@ func (f *Function) Arity() int {
 	return len(f.Declaration.Parameters)
 }
 
-func (n *Function) Bind(i *Instance) *Function {
-	env := NewEnvironment(n.runtime, n.closure)
-	env.Define("self", i)
-
-	return &Function{
-		runtime:       n.runtime,
-		Declaration:   n.Declaration,
+func (f *Function) Bind(instance *Instance) *Function {
+	env := NewEnvironment(f.runtime, f.closure)
+	env.Define("self", instance)
+	bound := &Function{
+		runtime:       f.runtime,
+		Declaration:   f.Declaration,
 		closure:       env,
-		IsInitializer: n.IsInitializer,
+		IsInitializer: f.IsInitializer,
 	}
+	return bound
 }
 
 func (f *Function) String() string {
