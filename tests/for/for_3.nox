@@ -1,0 +1,3 @@
+for (;;) {
+    print "This will run forever";
+}

@@ -1,0 +1,10 @@
+let a = "global";
+{
+  func showA() {
+    print a;
+  }
+
+  showA();
+  let a = "block";
+  showA();
+}

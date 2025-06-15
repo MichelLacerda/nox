@@ -1,0 +1,21 @@
+class Entity {
+  init(name) {
+    self.name = name;
+  }
+  
+  attack(other) {
+    print "Attacking: " + self.name + " vs " + other;
+  }
+}
+
+let entity = Entity("Player");
+entity.attack("Monster");
+entity.attack("Dragon");
+entity.attack("Goblin");
+entity.attack("Orc");
+entity.attack("Troll");
+entity.attack("Zombie");
+entity.attack(nil);
+entity.attack(1);
+entity.attack(2.01);
+entity.attack(true);

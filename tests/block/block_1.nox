@@ -1,0 +1,5 @@
+let a = "outer";
+{
+  let a = "inner";
+  print a;
+}

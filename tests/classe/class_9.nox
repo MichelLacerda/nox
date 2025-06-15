@@ -1,0 +1,12 @@
+class Foo {
+  init(a, b) {
+    self.a = a;
+    self.b = b;
+    print self;
+  }
+}
+
+let foo = Foo("Hello", "World");
+// print foo.init();
+print foo.a;
+print foo.b;

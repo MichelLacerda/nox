@@ -1,0 +1,10 @@
+let a = false;
+let b = true;
+
+if (a) {
+    print "a is true";
+} else if (b) {
+    print "b is true";
+} else {
+    print "both are false";
+}

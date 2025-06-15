@@ -1,0 +1,11 @@
+class Person {
+  sayName() {
+    print self.name;
+  }
+}
+
+let jane = Person();
+jane.name = "Jane";
+
+let method = jane.sayName;
+method(); // ?

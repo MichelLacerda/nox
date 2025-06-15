@@ -1,0 +1,9 @@
+class Printable {
+    __str__() {
+        return "This is a printable object.";
+    }
+}
+
+let p = Printable();
+
+print p;

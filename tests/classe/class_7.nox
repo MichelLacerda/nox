@@ -1,0 +1,10 @@
+class Cake {
+  taste() {
+    let adjective = "delicious";
+    print "The " + self.flavor + " cake is " + adjective + "!";
+  }
+}
+
+let cake = Cake();
+cake.flavor = "German chocolate";
+cake.taste(); // Prints "The German chocolate cake is delicious!".

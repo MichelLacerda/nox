@@ -1,0 +1,13 @@
+let lang = "Nox 😀";
+
+print lang;
+
+{
+    let lang = "Nox 🐱";
+
+    print lang;
+    {
+        let lang = "Nox 🐶";
+        print lang;
+    }
+}

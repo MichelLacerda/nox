@@ -1,0 +1,12 @@
+func adicionar(a, b) {
+    return a + b;
+}
+
+func main() {
+   print "Olá, Nox!";
+    
+   let resultado = adicionar(5, 3);
+   print "Resultado da adição: " + resultado;
+}
+
+main();

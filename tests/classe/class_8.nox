@@ -1,0 +1,12 @@
+class Thing {
+  getCallback() {
+    func localFunction() {
+      print "self is: " + self;
+    }
+
+    return localFunction;
+  }
+}
+
+let callback = Thing().getCallback();
+callback();

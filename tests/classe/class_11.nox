@@ -1,0 +1,10 @@
+func test() {
+  func local() {
+    print "hello";
+  }
+
+  let x = local;
+  x();
+}
+
+test();

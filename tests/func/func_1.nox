@@ -1,0 +1,6 @@
+func say_my_name(first, last) {
+  print "Hi, " + first + " " + last + "!";
+}
+
+say_my_name("Mr", "White");
+// Output: Hi, Mr White!
