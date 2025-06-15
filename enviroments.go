@@ -1,9 +1,15 @@
 package main
 
+// Adicionado para logs
+
 type Environment struct {
 	runtime   *Nox
 	Values    map[string]any
 	Enclosing *Environment
+}
+
+func (e *Environment) String() string {
+	return "<environment>"
 }
 
 func NewEnvironment(r *Nox, scope *Environment) *Environment {
@@ -16,7 +22,6 @@ func NewEnvironment(r *Nox, scope *Environment) *Environment {
 
 func (e *Environment) Define(name string, value any) {
 	if _, exists := e.Values[name]; exists {
-		//panic("Variable already defined: " + name)
 		e.runtime.ReportRuntimeError(&Token{Lexeme: name}, "Variable already defined: "+name)
 	}
 	e.Values[name] = value
@@ -25,12 +30,6 @@ func (e *Environment) Define(name string, value any) {
 func (e *Environment) Get(t *Token) any {
 	if value, exists := e.Values[t.Lexeme]; exists {
 		return value
-	}
-	// Fallback: se for self, tenta buscar por nome
-	if t.Lexeme == "self" {
-		if value, exists := e.Values["self"]; exists {
-			return value
-		}
 	}
 
 	if e.Enclosing != nil {
@@ -49,13 +48,20 @@ func (e *Environment) GetByName(name string) any {
 	if e.Enclosing != nil {
 		return e.Enclosing.GetByName(name)
 	}
-	e.runtime.ReportRuntimeError(&Token{Lexeme: name}, "Undefined variable: "+name)
+	e.runtime.ReportRuntimeError(&Token{Lexeme: name, line: 0}, "Undefined variable: "+name)
 	return nil
 }
 
 func (e *Environment) GetAt(distance int, name string) any {
 	ancestor := e.Ancestor(distance)
-	return ancestor.Values[name]
+	if ancestor == nil {
+		return nil
+	}
+	value, exists := ancestor.Values[name]
+	if exists {
+		return value
+	}
+	return nil
 }
 
 func (e *Environment) Assign(name *Token, value any) {
@@ -79,6 +85,9 @@ func (e *Environment) AssignAt(d int, name *Token, value any) {
 func (e *Environment) Ancestor(distance int) *Environment {
 	env := e
 	for i := 0; i < distance; i++ {
+		if env.Enclosing == nil {
+			return nil
+		}
 		env = env.Enclosing
 	}
 	return env

@@ -126,12 +126,22 @@ func (r *Resolver) VisitClassStmt(stmt *ClassStmt) any {
 	r.Declare(stmt.Name)
 	r.Define(stmt.Name)
 
+	if s, ok := r.scopes.Peek(); ok {
+		s["self"] = true
+	}
+
 	for _, method := range stmt.Methods {
+		functionType := FunctionTypeMethod
 		if method.Name.Lexeme == "init" {
-			r.ResolveFunction(method, FunctionTypeInitializer)
-		} else {
-			r.ResolveFunction(method, FunctionTypeMethod)
+			functionType = FunctionTypeInitializer
 		}
+
+		r.BeginScope()
+		if s, ok := r.scopes.Peek(); ok {
+			s["self"] = true
+		}
+		r.ResolveFunction(method, functionType)
+		r.EndScope()
 	}
 
 	r.BeginScope()

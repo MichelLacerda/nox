@@ -2,13 +2,13 @@ package main
 
 type Instance struct {
 	Class  *Class
-	Fields map[string]*any
+	Fields map[string]any
 }
 
 func NewInstance(c *Class) *Instance {
 	return &Instance{
 		Class:  c,
-		Fields: map[string]*any{},
+		Fields: map[string]any{},
 	}
 }
 
@@ -38,6 +38,18 @@ func (i *Instance) FindMethod(name string) (*Function, bool) {
 	return nil, false
 }
 
+// func (i *Instance) Set(name *Token, value any) {
+// 	i.Fields[name.Lexeme] = value
+// }
+
 func (i *Instance) Set(name *Token, value any) {
-	i.Fields[name.Lexeme] = &value
+	// Protege métodos
+	if _, isMethod := i.Class.Methods[name.Lexeme]; isMethod {
+		panic(RuntimeError{
+			Token:   name,
+			Message: "Cannot overwrite method '" + name.Lexeme + "' with a field.",
+		})
+	}
+
+	i.Fields[name.Lexeme] = value
 }

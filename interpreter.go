@@ -191,11 +191,27 @@ func (i *Interpreter) VisitBinaryExpr(expr *BinaryExpr) any {
 				return l + r
 			}
 		case string:
+			return l + i.stringify(right)
+		case nil:
 			if r, ok := right.(string); ok {
-				return l + r
+				return "nil" + r
+			}
+		default:
+			if r, ok := right.(string); ok {
+				return i.stringify(left) + r
 			}
 		}
-		i.runtime.ReportRuntimeError(expr.Operator, "Operands must be two numbers or two strings.")
+
+		if _, lok := left.(string); lok {
+			return i.stringify(left) + i.stringify(right)
+		}
+
+		if _, rok := right.(string); rok {
+			return i.stringify(left) + i.stringify(right)
+		}
+
+		i.runtime.ReportRuntimeError(expr.Operator, fmt.Sprintf(
+			"Operands must be two numbers or two strings, but got [%T] and [%T].", left, right))
 		return nil
 
 	case TokenType_GREATER:
@@ -258,7 +274,7 @@ func (i *Interpreter) VisitAssignExpr(expr *AssignExpr) any {
 }
 
 func (i *Interpreter) VisitCallExpr(expr *CallExpr) any {
-	callee := i.evaluate(expr.Callee).(Callable)
+	callee := i.evaluate(expr.Callee)
 
 	// Avalia os argumentos em ordem
 	var arguments []any
@@ -266,23 +282,24 @@ func (i *Interpreter) VisitCallExpr(expr *CallExpr) any {
 		arguments = append(arguments, i.evaluate(argument))
 	}
 
-	// // Verifica se o callee implementa a interface LoxCallable
-	// function, ok := callee.(Callable)
-	// fmt.Println("[DEBUG] calle:", callee, "arguments:", arguments, "ok:", ok)
-	// if !ok {
-	// 	panic(NewRuntimeError(expr.Parenthesis, "Can only call functions and classes."))
-	// }
-
 	// Verifica aridade
-	if len(arguments) != callee.Arity() {
-		panic(NewRuntimeError(expr.Parenthesis, fmt.Sprintf(
+	callable, ok := callee.(Callable)
+	if !ok {
+		i.runtime.ReportRuntimeError(expr.Parenthesis, "Callee não é chamável.")
+		return nil
+	}
+
+	if len(arguments) != callable.Arity() {
+		i.runtime.ReportRuntimeError(expr.Parenthesis, fmt.Sprintf(
 			"Expected %d arguments but got %d.",
-			callee.Arity(), len(arguments),
-		)))
+			callable.Arity(), len(arguments),
+		))
+		return nil
 	}
 
 	// Faz a chamada
-	return callee.Call(i, arguments)
+	result := callable.Call(i, arguments)
+	return result
 }
 
 func (i *Interpreter) VisitGetExpr(expr *GetExpr) any {
@@ -304,7 +321,7 @@ func (i *Interpreter) VisitSetExpr(expr *SetExpr) any {
 		return value
 	}
 
-	i.runtime.ReportRuntimeError(expr.Name, "Only instances have properties.")
+	i.runtime.ReportRuntimeError(expr.Name, "Only instances have fields.")
 	return nil
 }
 
@@ -330,6 +347,7 @@ func (i *Interpreter) VisitSuperExpr(expr *SuperExpr) any {
 }
 
 func (i *Interpreter) VisitSelfExpr(expr *SelfExpr) any {
+	// Ensure `self` is resolved correctly in the current environment
 	return i.lookUpVariable(expr.Keyword, expr)
 }
 

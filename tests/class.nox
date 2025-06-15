@@ -1,14 +1,21 @@
 class Entity {
-  init() {
-    print "Entity initialized";
+  init(name) {
+    self.name = name;
   }
-  attack() {
-    return "Attacking!";
+  
+  attack(other) {
+    print "Attacking: " + self.name + " vs " + other;
   }
 }
 
-let entity = Entity();
-print entity.init();
-// print entity.init(); // Output: Entity initialized
-// print entity; // <instance of Entity>
-// print entity.attack(); // Output: Attacking!
+let entity = Entity("Player");
+entity.attack("Monster");
+entity.attack("Dragon");
+entity.attack("Goblin");
+entity.attack("Orc");
+entity.attack("Troll");
+entity.attack("Zombie");
+entity.attack(nil);
+entity.attack(1);
+entity.attack(2.01);
+entity.attack(true);

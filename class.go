@@ -18,6 +18,7 @@ func (c *Class) Call(i *Interpreter, args []any) any {
 	instance := NewInstance(c)
 	if initializer, exists := c.FindMethod("init"); exists {
 		bound := initializer.Bind(instance)
+		// Execute e capture o retorno corretamente
 		bound.Call(i, args)
 	}
 	return instance
