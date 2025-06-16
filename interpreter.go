@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"reflect"
 )
 
@@ -109,14 +108,35 @@ func (i *Interpreter) VisitBlockStmt(stmt *BlockStmt) any {
 }
 
 func (i *Interpreter) VisitClassStmt(stmt *ClassStmt) any {
+	var superclass *Class
+
+	if stmt.Superclass != nil {
+		evaluatedSuperclass := i.evaluate(stmt.Superclass)
+		if sc, ok := evaluatedSuperclass.(*Class); ok {
+			superclass = sc
+		} else {
+			i.runtime.ReportRuntimeError(stmt.Superclass.Name, "Superclass must be a class.")
+			return nil
+		}
+	}
+
 	i.environment.Define(stmt.Name.Lexeme, nil) // Define a classe antes de instanciá-la
+
+	if stmt.Superclass != nil {
+		i.environment = NewEnvironment(i.runtime, i.environment) // Cria um novo ambiente para a classe
+		i.environment.Define("super", superclass)                // Define a variável 'super' no ambiente da classe
+	}
 
 	methods := MethodType{}
 	for _, method := range stmt.Methods {
 		fn := NewFunction(i.runtime, method, i.environment, method.Name.Lexeme == "init")
 		methods[method.Name.Lexeme] = fn
 	}
-	class := NewClass(stmt.Name.Lexeme, methods)
+
+	class := NewClass(stmt.Name.Lexeme, superclass, methods)
+	if stmt.Superclass != nil {
+		i.environment = i.environment.Enclosing // Retorna ao ambiente anterior após definir a classe
+	}
 	i.environment.Assign(stmt.Name, class)
 	return nil
 }
@@ -284,7 +304,7 @@ func (i *Interpreter) VisitCallExpr(expr *CallExpr) any {
 
 	callable, ok := callee.(Callable)
 	if !ok {
-		i.runtime.ReportRuntimeError(expr.Parenthesis, "Can only call functions and classes.")
+		i.runtime.ReportRuntimeError(expr.Parenthesis, fmt.Sprintf("Can only call functions and classes. %T", callee))
 		return nil
 	}
 
@@ -344,8 +364,35 @@ func (i *Interpreter) VisitLogicalExpr(expr *LogicalExpr) any {
 }
 
 func (i *Interpreter) VisitSuperExpr(expr *SuperExpr) any {
-	log.Panic("VisitSuperExpr not implemented yet.")
-	return nil
+
+	// Recupera a distância do 'super' na resolução de variáveis (enquanto resolver)
+	distance := i.locals[expr]
+
+	// Busca a classe pai (superclasse) a partir da distância
+	superclass, ok := i.environment.GetAt(distance, "super").(*Class)
+
+	if !ok {
+		i.runtime.ReportRuntimeError(expr.Keyword, "Invalid superclass.")
+		return nil
+	}
+
+	// Busca a instância atual (this/self), que está um escopo acima
+	object, ok := i.environment.GetAt(distance-1, "self").(*Instance)
+	if !ok {
+		i.runtime.ReportRuntimeError(expr.Keyword, "Invalid instance for 'super'.")
+		return nil
+	}
+
+	// Tenta localizar o método na superclasse
+	method, found := superclass.FindMethod(expr.Method.Lexeme)
+	if !found {
+		i.runtime.ReportRuntimeError(expr.Method, fmt.Sprintf(
+			"Undefined property '%s'.", expr.Method.Lexeme))
+		return nil
+	}
+
+	// Retorna o método ligado à instância (bind)
+	return method.Bind(object)
 }
 
 func (i *Interpreter) VisitSelfExpr(expr *SelfExpr) any {

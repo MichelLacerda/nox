@@ -21,7 +21,7 @@ func (i *Instance) Get(name *Token) any {
 		return value
 	}
 
-	if method, exists := i.FindMethod(name.Lexeme); exists {
+	if method, exists := i.Class.FindMethod(name.Lexeme); exists {
 		bound := method.Bind(i)
 		return bound
 	}
@@ -30,13 +30,6 @@ func (i *Instance) Get(name *Token) any {
 		Token:   name,
 		Message: "Undefined property '" + name.Lexeme + "' in instance of class '" + i.Class.Name + "'.",
 	})
-}
-
-func (i *Instance) FindMethod(name string) (*Function, bool) {
-	if method, exists := i.Class.Methods[name]; exists {
-		return method, true
-	}
-	return nil, false
 }
 
 func (i *Instance) Set(name *Token, value any) {

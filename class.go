@@ -5,11 +5,13 @@ type MethodType map[string]*Function
 type Class struct {
 	Name    string
 	Methods MethodType
+	Super   *Class
 }
 
-func NewClass(name string, methods MethodType) *Class {
+func NewClass(name string, super *Class, methods MethodType) *Class {
 	return &Class{
 		Name:    name,
+		Super:   super,
 		Methods: methods,
 	}
 }
@@ -41,6 +43,13 @@ func (c *Class) Bind(instance *Instance) Callable {
 }
 
 func (c *Class) FindMethod(name string) (*Function, bool) {
-	method, exists := c.Methods[name]
-	return method, exists
+	if method, exists := c.Methods[name]; exists {
+		return method, true
+	}
+
+	if c.Super != nil {
+		return c.Super.FindMethod(name)
+	}
+
+	return nil, false
 }

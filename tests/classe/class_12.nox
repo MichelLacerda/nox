@@ -1,0 +1,9 @@
+class A {
+    rerp() {
+        print "A";
+    }
+}
+
+class B < A {}
+
+B().rerp();

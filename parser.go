@@ -69,6 +69,14 @@ func (p *Parser) ClassDeclaration() (Stmt, error) {
 		return nil, err
 	}
 
+	var superclass *VariableExpr
+	if p.Match(TokenType_LESS) {
+		if _, err := p.Consume(TokenType_IDENTIFIER, "Expect superclass name after '<'."); err != nil {
+			return nil, err
+		}
+		superclass = &VariableExpr{Name: p.Previous()}
+	}
+
 	if _, err := p.Consume(TokenType_LEFT_BRACE, "Expect '{' before class body."); err != nil {
 		return nil, err
 	}
@@ -88,7 +96,7 @@ func (p *Parser) ClassDeclaration() (Stmt, error) {
 		return nil, err
 	}
 
-	return NewClassStmt(name, nil, methods), nil
+	return NewClassStmt(name, superclass, methods), nil
 }
 
 func (p *Parser) Function(kind string) (*FunctionStmt, error) {
@@ -693,6 +701,19 @@ func (p *Parser) Primary() (Expr, error) {
 
 	if p.Match(TokenType_NUMBER, TokenType_STRING) {
 		return &LiteralExpr{Value: p.Previous().Literal}, nil
+	}
+
+	if p.Match(TokenType_SUPER) {
+		keyword := p.Previous()
+		p.Consume(TokenType_DOT, "Expect '.' after 'super'.")
+		if method, err := p.Consume(TokenType_IDENTIFIER, "Expect superclass method name."); err == nil {
+			return &SuperExpr{
+				Keyword: keyword,
+				Method:  method,
+			}, nil
+		} else {
+			return nil, err
+		}
 	}
 
 	if p.Match(TokenType_SELF) {

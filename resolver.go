@@ -14,8 +14,7 @@ type ClassType int
 const (
 	ClassTypeNone ClassType = iota
 	ClassTypeClass
-	// ClassTypeSubclass
-	// ClassTypeInterface
+	ClassTypeSubclass
 )
 
 type Resolver struct {
@@ -126,6 +125,20 @@ func (r *Resolver) VisitClassStmt(stmt *ClassStmt) any {
 	r.Declare(stmt.Name)
 	r.Define(stmt.Name)
 
+	if stmt.Superclass != nil {
+		if stmt.Name.Lexeme == stmt.Superclass.Name.Lexeme {
+			r.interpreter.runtime.ReportRuntimeError(stmt.Superclass.Name, "A class cannot inherit from itself.")
+		}
+
+		r.currentClass = ClassTypeSubclass
+		r.ResolveExpr(stmt.Superclass)
+
+		r.BeginScope() // Create a new scope for the superclass
+		if s, ok := r.scopes.Peek(); ok {
+			s["super"] = true
+		}
+	}
+
 	if s, ok := r.scopes.Peek(); ok {
 		s["self"] = true
 	}
@@ -149,6 +162,11 @@ func (r *Resolver) VisitClassStmt(stmt *ClassStmt) any {
 		s[stmt.Name.Lexeme] = true
 	}
 	r.EndScope()
+
+	if stmt.Superclass != nil {
+		r.EndScope() // End the scope created for the superclass
+	}
+
 	r.currentClass = enclosingClass
 	return nil
 }
@@ -273,7 +291,13 @@ func (r *Resolver) VisitSetExpr(expr *SetExpr) any {
 }
 
 func (r *Resolver) VisitSuperExpr(expr *SuperExpr) any {
-	panic("unimplemented")
+	if r.currentClass == ClassTypeNone {
+		r.interpreter.runtime.ReportRuntimeError(expr.Keyword, "Cannot use 'super' outside of a class.")
+	} else if r.currentClass != ClassTypeSubclass {
+		r.interpreter.runtime.ReportRuntimeError(expr.Keyword, "Cannot use 'super' in a class with no superclass.")
+	}
+	r.ResolveLocalExpr(expr, expr.Keyword)
+	return nil
 }
 
 func (r *Resolver) VisitSelfExpr(expr *SelfExpr) any {

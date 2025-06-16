@@ -94,7 +94,8 @@ func (s *SetExpr) Accept(visitor ExprVisitor) any {
 }
 
 type SuperExpr struct {
-	Method string
+	Keyword *Token // The 'super' keyword
+	Method  *Token
 }
 
 func (s *SuperExpr) Accept(visitor ExprVisitor) any {
