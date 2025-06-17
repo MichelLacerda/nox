@@ -65,6 +65,7 @@ let name = "Nox";
 let age = 42;
 let active = true;
 let empty = nil;
+let list = [8, 10, "1.0"];
 ```
 
 ### ✅ Mathematical Operations
@@ -82,6 +83,8 @@ let result = (1 + 2) * 3;
 ```nox
 print "Hello, world!";
 print name + " is " + age + " years old.";
+print list;
+print list[0];
 ```
 
 ### ✅ Functions
@@ -137,8 +140,8 @@ while (true) {
 ### ✅ For Loop
 
 ```nox
-for (let i = 0; i < 5; i = i + 1) {
-    print i;
+for (let i = 0; i < len(list); i = i + 1) {
+    print list[i];
 }
 
 for (;;) {
