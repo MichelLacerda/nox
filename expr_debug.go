@@ -66,6 +66,18 @@ func (v *VariableExpr) String() string {
 	return v.Name.Lexeme
 }
 
+func (l *ListExpr) String() string {
+	var elements []string
+	for _, elem := range l.Elements {
+		elements = append(elements, elem.String())
+	}
+	return fmt.Sprintf("list[%s]", strings.Join(elements, ", "))
+}
+
+func (i *IndexExpr) String() string {
+	return fmt.Sprintf("index %s[%s]", i.List.String(), i.Index.String())
+}
+
 func parenthesize(name string, parts ...Expr) string {
 	var builder strings.Builder
 

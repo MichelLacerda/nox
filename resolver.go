@@ -245,6 +245,12 @@ func (r *Resolver) VisitWhileStmt(stmt *WhileStmt) any {
 	return nil
 }
 
+func (r *Resolver) VisitIndexExpr(expr *IndexExpr) any {
+	r.ResolveExpr(expr.List)
+	r.ResolveExpr(expr.Index)
+	return nil
+}
+
 func (r *Resolver) VisitBinaryExpr(expr *BinaryExpr) any {
 	r.ResolveExpr(expr.Left)
 	r.ResolveExpr(expr.Right)
@@ -307,5 +313,12 @@ func (r *Resolver) VisitSelfExpr(expr *SelfExpr) any {
 	}
 
 	r.ResolveLocalExpr(expr, expr.Keyword)
+	return nil
+}
+
+func (r *Resolver) VisitListExpr(expr *ListExpr) any {
+	for _, element := range expr.Elements {
+		r.ResolveExpr(element)
+	}
 	return nil
 }

@@ -42,7 +42,7 @@ comparison  ::= term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
 term        ::= factor ( ( "-" | "+" ) factor )* ;
 factor      ::= unary ( ( "/" | "*" ) unary )* ;
 unary       ::= ( "!" | "-" ) unary | call | primary ;
-call        ::= primary ( "(" arguments? ")" | "."  IDENTIFIER )* ;
+call        ::= primary ( "(" arguments? ")" | "." IDENTIFIER | "[" expression "]" )* ;
 arguments   ::= expression ( "," expression )* ;
 primary     ::= NUMBER
                 | STRING
@@ -51,7 +51,9 @@ primary     ::= NUMBER
                 | "nil"
                 | "(" expression ")"
                 | "self"
-                | "super" "." IDENTIFIER ;
+                | "super" "." IDENTIFIER 
+                | "[" elements? "]" ;
+elements    ::= expression ( "," expression )* ;
 ```
 
 ## Examples:

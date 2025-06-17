@@ -641,6 +641,13 @@ func (p *Parser) Call() (Expr, error) {
 				Object: expr,
 				Name:   token,
 			}
+		} else if p.Match(TokenType_LEFT_BRACKET) {
+			index, err := p.Expression()
+			if err != nil {
+				return nil, err
+			}
+			p.Consume(TokenType_RIGHT_BRACKET, "Expect ']' after index.")
+			expr = &IndexExpr{List: expr, Index: index}
 		} else {
 			break
 		}
@@ -692,15 +699,44 @@ func (p *Parser) Primary() (Expr, error) {
 	if p.Match(TokenType_FALSE) {
 		return &LiteralExpr{Value: false}, nil
 	}
+
 	if p.Match(TokenType_TRUE) {
 		return &LiteralExpr{Value: true}, nil
 	}
+
 	if p.Match(TokenType_NIL) {
 		return &LiteralExpr{Value: nil}, nil
 	}
 
 	if p.Match(TokenType_NUMBER, TokenType_STRING) {
 		return &LiteralExpr{Value: p.Previous().Literal}, nil
+	}
+
+	if p.Match(TokenType_LEFT_BRACKET) {
+		var elements []Expr
+
+		if !p.Check(TokenType_RIGHT_BRACKET) {
+			for {
+				expr, err := p.Expression()
+
+				if err != nil {
+					return nil, err
+				}
+
+				elements = append(elements, expr)
+
+				if !p.Match(TokenType_COMMA) {
+					break
+				}
+			}
+		}
+
+		closing, _ := p.Consume(TokenType_RIGHT_BRACKET, "Expect ']' after list elements.")
+
+		return &ListExpr{
+			Elements: elements,
+			Bracket:  closing,
+		}, nil
 	}
 
 	if p.Match(TokenType_SUPER) {

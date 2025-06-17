@@ -3,7 +3,9 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"os"
+	"strings"
 )
 
 type Nox struct {
@@ -85,25 +87,41 @@ func (n *Nox) RunFile(path string) error {
 }
 
 func (n *Nox) RunPrompt() {
-	input := bufio.NewScanner(os.Stdin)
-
+	reader := bufio.NewReader(os.Stdin)
 	fmt.Println("Welcome to Nox! Type 'exit', 'quit' or '\\q' to exit.")
+	fmt.Println("Press ENTER twice to execute multiline input.")
+
 	for {
-		fmt.Print(">> ")
-		line := input.Scan()
-		if !line {
-			if input.Err() != nil {
-				fmt.Println("Error reading input:", input.Err())
+		var lines []string
+		for {
+			fmt.Print(">> ")
+			line, err := reader.ReadString('\n')
+			if err != nil {
+				if err == io.EOF {
+					fmt.Println("Exiting Nox.")
+					return
+				}
+				fmt.Println("Error reading input:", err)
+				return
 			}
-			break
-		}
-		text := input.Text()
-		if text == "exit" || text == "quit" || text == "\\q" {
-			fmt.Println("Exiting Nox.")
-			break
+
+			text := strings.TrimSpace(line)
+
+			if text == "exit" || text == "quit" || text == "\\q" {
+				fmt.Println("Exiting Nox.")
+				return
+			}
+
+			// Break if the user hits enter twice
+			if text == "" {
+				break
+			}
+
+			lines = append(lines, line)
 		}
 
-		if err := n.Run(text); err != nil {
+		src := strings.Join(lines, "")
+		if err := n.Run(src); err != nil {
 			fmt.Printf("Error: %v\n", err)
 		} else {
 			n.hadError = false
@@ -130,12 +148,6 @@ func (n *Nox) Run(source string) error {
 	}
 
 	n.interpreter.Interpret(statements)
-
-	// fmt.Println("Parsed expression:", expr)
-
-	// for _, token := range tokens {
-	// 	fmt.Println(token)
-	// }
 
 	return nil
 }

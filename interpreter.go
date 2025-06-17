@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"reflect"
+	"strings"
 )
 
 type Interpreter struct {
@@ -21,6 +22,7 @@ func NewInterpreter(r *Nox) *Interpreter {
 	}
 	interpreter.environment = interpreter.globals // Aponta para o global no início
 	interpreter.globals.Define("clock", ClockCallable{})
+	interpreter.globals.Define("len", LenCallable{})
 	return interpreter
 }
 
@@ -413,6 +415,34 @@ func (i *Interpreter) VisitWhileStmt(stmt *WhileStmt) any {
 	return nil
 }
 
+func (i *Interpreter) VisitListExpr(expr *ListExpr) any {
+	var result []any
+	for _, element := range expr.Elements {
+		value := i.evaluate(element)
+		result = append(result, value)
+	}
+	return result
+}
+
+func (i *Interpreter) VisitIndexExpr(expr *IndexExpr) any {
+	list := i.evaluate(expr.List)
+	index := i.evaluate(expr.Index)
+
+	l, ok := list.([]any)
+	if !ok {
+		i.runtime.ReportRuntimeError(nil, "Only lists can be indexed.")
+		return nil
+	}
+
+	idx, ok := index.(float64)
+	if !ok || int(idx) < 0 || int(idx) >= len(l) {
+		i.runtime.ReportRuntimeError(nil, "Invalid list index.")
+		return nil
+	}
+
+	return l[int(idx)]
+}
+
 // ===== Helpers =====
 
 func (i *Interpreter) evaluate(expr Expr) any {
@@ -442,6 +472,12 @@ func (i *Interpreter) stringify(value any) string {
 		return fmt.Sprintf("%g", v)
 	case string:
 		return v
+	case []any:
+		var parts []string
+		for _, v := range value.([]any) {
+			parts = append(parts, i.stringify(v))
+		}
+		return "[" + strings.Join(parts, ", ") + "]"
 	default:
 		return fmt.Sprintf("%v", v)
 	}

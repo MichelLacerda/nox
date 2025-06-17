@@ -184,3 +184,16 @@ func (w *WhileStmt) String() string {
 func (w *WhileStmt) Accept(visitor StmtVisitor) any {
 	return visitor.VisitWhileStmt(w)
 }
+
+// ListStmt represents a list of statements in the language.
+type ListStmt struct {
+	Statements []Stmt
+}
+
+func (l *ListStmt) String() string {
+	var result string
+	for _, stmt := range l.Statements {
+		result += stmt.String() + "\n"
+	}
+	return result
+}

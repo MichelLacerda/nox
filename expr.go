@@ -13,6 +13,8 @@ type ExprVisitor interface {
 	VisitLogicalExpr(expr *LogicalExpr) any
 	VisitSuperExpr(expr *SuperExpr) any
 	VisitSelfExpr(expr *SelfExpr) any
+	VisitListExpr(expr *ListExpr) any
+	VisitIndexExpr(expr *IndexExpr) any
 }
 type Expr interface {
 	String() string
@@ -125,4 +127,22 @@ type VariableExpr struct {
 
 func (v *VariableExpr) Accept(visitor ExprVisitor) any {
 	return visitor.VisitVariableExpr(v)
+}
+
+type ListExpr struct {
+	Elements []Expr
+	Bracket  *Token
+}
+
+func (l *ListExpr) Accept(visitor ExprVisitor) any {
+	return visitor.VisitListExpr(l)
+}
+
+type IndexExpr struct {
+	List  Expr
+	Index Expr
+}
+
+func (i *IndexExpr) Accept(visitor ExprVisitor) any {
+	return visitor.VisitIndexExpr(i)
 }
