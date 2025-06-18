@@ -425,22 +425,56 @@ func (i *Interpreter) VisitListExpr(expr *ListExpr) any {
 }
 
 func (i *Interpreter) VisitIndexExpr(expr *IndexExpr) any {
-	list := i.evaluate(expr.List)
+	object := i.evaluate(expr.List)
 	index := i.evaluate(expr.Index)
 
-	l, ok := list.([]any)
-	if !ok {
-		i.runtime.ReportRuntimeError(nil, "Only lists can be indexed.")
+	switch obj := object.(type) {
+	case []any:
+		intIndex, ok := index.(float64)
+		if !ok {
+			i.runtime.ReportRuntimeError(&Token{Type: TokenType_Unknown, Lexeme: "[]"}, "List index must be a number.")
+			return nil
+		}
+		idx := int(intIndex)
+		if idx < 0 || idx >= len(obj) {
+			i.runtime.ReportRuntimeError(&Token{Type: TokenType_Unknown, Lexeme: "[]"}, fmt.Sprintf("List index out of range: %d", idx))
+			return nil
+		}
+		return obj[idx]
+	case map[string]any: // dicionário
+		key, ok := index.(string)
+		if !ok {
+			i.runtime.ReportRuntimeError(&Token{Type: TokenType_Unknown, Lexeme: "{}"}, "Dictionary keys must be strings.")
+			return nil
+		}
+		val, exists := obj[key]
+		if !exists {
+			i.runtime.ReportRuntimeError(&Token{Type: TokenType_Unknown, Lexeme: "{}"}, fmt.Sprintf("Key '%s' not found in dictionary.", key))
+			return nil
+		}
+		return val
+	default:
+		i.runtime.ReportRuntimeError(&Token{Type: TokenType_Unknown, Lexeme: ""}, "Only lists and dictionaries support indexing.")
 		return nil
-	}
 
-	idx, ok := index.(float64)
-	if !ok || int(idx) < 0 || int(idx) >= len(l) {
-		i.runtime.ReportRuntimeError(nil, "Invalid list index.")
-		return nil
 	}
+}
 
-	return l[int(idx)]
+func (i *Interpreter) VisitDictExpr(expr *DictExpr) any {
+	dict := map[string]any{}
+
+	for _, pair := range expr.Pairs {
+		key := i.evaluate(pair.Key)
+		value := i.evaluate(pair.Value)
+
+		if keyStr, ok := key.(string); ok {
+			dict[keyStr] = value
+		} else {
+			i.runtime.ReportRuntimeError(&Token{Type: TokenType_Unknown, Lexeme: ""}, "Dictionary keys must be strings.")
+			return nil
+		}
+	}
+	return dict
 }
 
 // ===== Helpers =====
@@ -465,19 +499,42 @@ func (i *Interpreter) isEqual(a, b any) bool {
 }
 
 func (i *Interpreter) stringify(value any) string {
+	return i.stringifyWithIndent(value, 0)
+}
+
+func (i *Interpreter) stringifyWithIndent(value any, indent int) string {
+	indentStr := strings.Repeat("  ", indent)
+	nextIndentStr := strings.Repeat("  ", indent+1)
+
 	switch v := value.(type) {
 	case nil:
 		return "nil"
+	case bool:
+		return fmt.Sprintf("%t", v)
 	case float64:
 		return fmt.Sprintf("%g", v)
 	case string:
-		return v
+		return fmt.Sprintf("%q", v) // Aspas para strings
 	case []any:
-		var parts []string
-		for _, v := range value.([]any) {
-			parts = append(parts, i.stringify(v))
+		if len(v) == 0 {
+			return "[]"
 		}
-		return "[" + strings.Join(parts, ", ") + "]"
+		var elems []string
+		for _, e := range v {
+			elemStr := i.stringifyWithIndent(e, indent+1)
+			elems = append(elems, nextIndentStr+elemStr)
+		}
+		return "[\n" + strings.Join(elems, ",\n") + "\n" + indentStr + "]"
+	case map[string]any:
+		if len(v) == 0 {
+			return "{}"
+		}
+		var pairs []string
+		for k, val := range v {
+			pairStr := fmt.Sprintf("%s%q: %s", nextIndentStr, k, i.stringifyWithIndent(val, indent+1))
+			pairs = append(pairs, pairStr)
+		}
+		return "{\n" + strings.Join(pairs, ",\n") + "\n" + indentStr + "}"
 	default:
 		return fmt.Sprintf("%v", v)
 	}

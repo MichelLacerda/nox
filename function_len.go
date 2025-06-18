@@ -25,7 +25,7 @@ func (l LenCallable) Call(i *Interpreter, args []any) any {
 	default:
 		i.runtime.ReportRuntimeError(&Token{
 			Lexeme: "len",
-			Type:   TokenType_NIL,
+			Type:   TokenType_Unknown,
 		}, fmt.Sprintf("len() not supported for type %T", arg))
 		return nil
 	}

@@ -15,6 +15,7 @@ type ExprVisitor interface {
 	VisitSelfExpr(expr *SelfExpr) any
 	VisitListExpr(expr *ListExpr) any
 	VisitIndexExpr(expr *IndexExpr) any
+	VisitDictExpr(expr *DictExpr) any
 }
 type Expr interface {
 	String() string
@@ -145,4 +146,21 @@ type IndexExpr struct {
 
 func (i *IndexExpr) Accept(visitor ExprVisitor) any {
 	return visitor.VisitIndexExpr(i)
+}
+
+type DictExpr struct {
+	Pairs []DictPair
+}
+
+type DictPair struct {
+	Key   Expr
+	Value Expr
+}
+
+func (d *DictPair) String() string {
+	return d.Key.String() + ": " + d.Value.String()
+}
+
+func (d *DictExpr) Accept(visitor ExprVisitor) any {
+	return visitor.VisitDictExpr(d)
 }

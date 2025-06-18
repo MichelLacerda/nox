@@ -109,6 +109,14 @@ func (r *Resolver) ResolveFunction(stmt *FunctionStmt, functionType FunctionType
 	r.currentFunction = enclosingFunction
 }
 
+func (r *Resolver) VisitDictExpr(expr *DictExpr) any {
+	for _, pair := range expr.Pairs {
+		r.ResolveExpr(pair.Key)
+		r.ResolveExpr(pair.Value)
+	}
+	return nil
+}
+
 // ==== Visitor methods ====
 
 func (r *Resolver) VisitBlockStmt(stmt *BlockStmt) any {

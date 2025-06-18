@@ -712,6 +712,25 @@ func (p *Parser) Primary() (Expr, error) {
 		return &LiteralExpr{Value: p.Previous().Literal}, nil
 	}
 
+	if p.Match(TokenType_LEFT_BRACE) {
+		var pairs []DictPair
+		for !p.Check(TokenType_RIGHT_BRACE) && !p.IsAtEnd() {
+			key, err := p.Expression()
+			if err != nil {
+				return nil, err
+			}
+			p.Consume(TokenType_COLON, "Expect ':' after key.")
+			value, err := p.Expression()
+			pairs = append(pairs, DictPair{key, value})
+
+			if !p.Match(TokenType_COMMA) {
+				break
+			}
+		}
+		p.Consume(TokenType_RIGHT_BRACE, "Expect '}' after dictionary.")
+		return &DictExpr{Pairs: pairs}, nil
+	}
+
 	if p.Match(TokenType_LEFT_BRACKET) {
 		var elements []Expr
 

@@ -78,6 +78,14 @@ func (i *IndexExpr) String() string {
 	return fmt.Sprintf("index %s[%s]", i.List.String(), i.Index.String())
 }
 
+func (i *DictExpr) String() string {
+	var pairs []string
+	for _, value := range i.Pairs {
+		pairs = append(pairs, fmt.Sprintf("%s: %s", value.Key, value.Value))
+	}
+	return fmt.Sprintf("dict{%s}", strings.Join(pairs, ", "))
+}
+
 func parenthesize(name string, parts ...Expr) string {
 	var builder strings.Builder
 

@@ -18,6 +18,7 @@ const (
 	TokenType_DOT
 	TokenType_MINUS
 	TokenType_PLUS
+	TokenType_COLON
 	TokenType_SEMICOLON
 	TokenType_SLASH
 	TokenType_STAR
@@ -54,9 +55,9 @@ const (
 	TokenType_TRUE
 	TokenType_LET
 	TokenType_WHILE
-	TokenType_THEN
-	TokenType_END
-	TokenType_DO
+
+	// Unknown or reserved keywords.
+	TokenType_Unknown
 )
 
 var TokenTypeNames = map[TokenType]string{
@@ -100,10 +101,8 @@ var TokenTypeNames = map[TokenType]string{
 	TokenType_SUPER:         "SUPER",
 	TokenType_TRUE:          "TRUE",
 	TokenType_LET:           "LET",
-	TokenType_THEN:          "THEN",
-	TokenType_END:           "END",
-	TokenType_DO:            "DO",
 	TokenType_WHILE:         "WHILE",
+	TokenType_Unknown:       "UNKNOWN",
 }
 
 func (t TokenType) String() string {
