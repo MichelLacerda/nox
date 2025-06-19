@@ -349,3 +349,8 @@ func (r *Resolver) VisitListExpr(expr *ListExpr) any {
 	}
 	return nil
 }
+
+func (r *Resolver) VisitSafeExpr(expr *SafeExpr) any {
+	r.ResolveExpr(expr.Expr)
+	return nil
+}

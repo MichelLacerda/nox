@@ -668,7 +668,7 @@ func (p *Parser) Factor() (Expr, error) {
 }
 
 func (p *Parser) Unary() (Expr, error) {
-	if p.Match(TokenType_BANG, TokenType_MINUS) {
+	if p.Match(TokenType_BANG, TokenType_MINUS, TokenType_NOT) {
 		operator := p.Previous()
 		right, err := p.Unary()
 
@@ -680,6 +680,16 @@ func (p *Parser) Unary() (Expr, error) {
 			Operator: operator,
 			Right:    right,
 		}, nil
+	}
+
+	// try safe: ?expr
+	if p.Match(TokenType_QUESTION) {
+		question := p.Previous()
+		expr, err := p.Unary() // pega função, get, index, etc
+		if err != nil {
+			return nil, err
+		}
+		return &SafeExpr{Name: question, Expr: expr}, nil
 	}
 
 	return p.Call()

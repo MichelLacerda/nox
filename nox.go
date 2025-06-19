@@ -37,7 +37,7 @@ type RuntimeError struct {
 }
 
 func (e RuntimeError) Error() string {
-	return e.Message
+	return fmt.Sprintf("Runtime Error at %s: %s", e.Token.Lexeme, e.Message)
 }
 
 func NewRuntimeError(token *Token, message string) RuntimeError {
@@ -56,8 +56,7 @@ func (n *Nox) ErrorAt(line int, message string) {
 }
 
 func (n *Nox) ReportRuntimeError(t *Token, message string) {
-	fmt.Printf("Runtime Error at %s: %s line %d\n", t.Lexeme, message, t.line)
-	n.hadRuntimeError = true
+	panic(RuntimeError{Token: t, Message: message})
 }
 
 func (n *Nox) RunFile(path string) error {
@@ -70,14 +69,18 @@ func (n *Nox) RunFile(path string) error {
 
 	interpreter := NewInterpreter(n, StringifyCompact)
 
-	if err := n.Run(string(source), interpreter); err != nil {
-		fmt.Printf("Error: %v\n", err)
-		if perr, ok := err.(ParserError); ok {
-			n.ErrorAt(perr.Token.line, perr.Message)
+	err = n.Run(string(source), interpreter)
+	if err != nil {
+		// fmt.Printf("Error: %v\n", err)
+		switch err := err.(type) {
+		case ParserError:
+			n.ErrorAt(err.Token.line, err.Message)
 			os.Exit(65)
-		} else if rerr, ok := err.(RuntimeError); ok {
-			n.ReportRuntimeError(rerr.Token, rerr.Message)
+		case RuntimeError:
+			// já foi exibido em Run()
 			os.Exit(70)
+		default:
+			os.Exit(1)
 		}
 	} else {
 		n.hadError = false
@@ -126,20 +129,35 @@ func (n *Nox) RunPrompt() {
 
 		src := strings.Join(lines, "")
 		if err := n.Run(src, interpreter); err != nil {
-			fmt.Printf("Error: %v\n", err)
+			if _, ok := err.(RuntimeError); !ok {
+				// Só imprime erros que NÃO são RuntimeError (ex: ParserError, etc.)
+				fmt.Printf("Error: %v\n", err)
+			}
 		} else {
 			n.hadError = false
 		}
 	}
 }
 
-func (n *Nox) Run(source string, interpreter *Interpreter) error {
+func (n *Nox) Run(source string, interpreter *Interpreter) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			if runtimeErr, ok := r.(RuntimeError); ok {
+				fmt.Println(runtimeErr.Error()) // só a mensagem bonita
+				n.hadRuntimeError = true
+				err = runtimeErr // permite tratamento externo se necessário
+				return
+			}
+			// panics inesperados continuam
+			panic(r)
+		}
+	}()
+
 	scanner := NewScanner([]rune(source))
 	tokens := scanner.ScanTokens()
 
 	parser := NewParser(tokens)
 	statements, err := parser.Parse()
-
 	if err != nil {
 		return err
 	}

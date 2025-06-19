@@ -62,6 +62,8 @@ func (s *Scanner) ScanToken() {
 		s.AddToken(TokenType_STAR)
 	case ':':
 		s.AddToken(TokenType_COLON)
+	case '?':
+		s.AddToken(TokenType_QUESTION)
 	case '!':
 		if s.Match('=') {
 			s.AddToken(TokenType_BANG_EQUAL)

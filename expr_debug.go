@@ -86,6 +86,10 @@ func (i *DictExpr) String() string {
 	return fmt.Sprintf("dict{%s}", strings.Join(pairs, ", "))
 }
 
+func (d *SafeExpr) String() string {
+	return fmt.Sprintf("safe %s", d.Expr.String())
+}
+
 func parenthesize(name string, parts ...Expr) string {
 	var builder strings.Builder
 

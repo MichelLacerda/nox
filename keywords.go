@@ -12,6 +12,7 @@ var Keywords = map[string]TokenType{
 	"let":    TokenType_LET,
 	"nil":    TokenType_NIL,
 	"or":     TokenType_OR,
+	"not":    TokenType_NOT,
 	"print":  TokenType_PRINT,
 	"return": TokenType_RETURN,
 	"self":   TokenType_SELF,

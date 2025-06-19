@@ -32,6 +32,7 @@ const (
 	TokenType_GREATER_EQUAL
 	TokenType_LESS
 	TokenType_LESS_EQUAL
+	TokenType_QUESTION
 
 	// Literals.
 	TokenType_IDENTIFIER
@@ -49,6 +50,7 @@ const (
 	TokenType_IF
 	TokenType_NIL
 	TokenType_OR
+	TokenType_NOT
 	TokenType_PRINT
 	TokenType_RETURN
 	TokenType_SELF
@@ -84,6 +86,7 @@ var TokenTypeNames = map[TokenType]string{
 	TokenType_GREATER_EQUAL: "GREATER_EQUAL",
 	TokenType_LESS:          "LESS",
 	TokenType_LESS_EQUAL:    "LESS_EQUAL",
+	TokenType_QUESTION:      "QUESTION",
 	TokenType_IDENTIFIER:    "IDENTIFIER",
 	TokenType_STRING:        "STRING",
 	TokenType_NUMBER:        "NUMBER",
@@ -97,6 +100,7 @@ var TokenTypeNames = map[TokenType]string{
 	TokenType_IF:            "IF",
 	TokenType_NIL:           "NIL",
 	TokenType_OR:            "OR",
+	TokenType_NOT:           "NOT",
 	TokenType_PRINT:         "PRINT",
 	TokenType_RETURN:        "RETURN",
 	TokenType_SELF:          "SELF",

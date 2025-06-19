@@ -7,25 +7,50 @@ import (
 )
 
 type Interpreter struct {
-	runtime     *Nox
-	globals     *Environment
-	locals      map[Expr]int
-	environment *Environment
-	stringify   func(value any) string
+	runtime      *Nox
+	globals      *Environment
+	locals       map[Expr]int
+	environment  *Environment
+	stringify    func(value any) string
+	silentErrors bool
+	debug        bool // Modo de depuração
 }
 
 func NewInterpreter(r *Nox, stringifyFn func(value any) string) *Interpreter {
 	interpreter := &Interpreter{
-		runtime:     r,
-		globals:     NewEnvironment(r, nil),
-		environment: nil, // Inicialmente nil
-		locals:      map[Expr]int{},
-		stringify:   stringifyFn,
+		runtime:      r,
+		globals:      NewEnvironment(r, nil),
+		environment:  nil, // Inicialmente nil
+		locals:       map[Expr]int{},
+		stringify:    stringifyFn,
+		silentErrors: true,  // Inicialmente não silencioso
+		debug:        false, // Modo de depuração desativado por padrão
 	}
 	interpreter.environment = interpreter.globals // Aponta para o global no início
 	interpreter.globals.Define("clock", ClockCallable{})
 	interpreter.globals.Define("len", LenCallable{})
 	interpreter.globals.Define("range", RangeCallable{})
+	interpreter.globals.Define("assert", &BuiltinFunction{
+		arity: 2,
+		call: func(i *Interpreter, args []any) any {
+			condition := i.isTruthy(args[0])
+			message := args[1]
+
+			if condition {
+				return nil // tudo certo
+			}
+
+			// modo debug → apenas imprime
+			if i.debug {
+				fmt.Printf("Assertion failed: %v\n", i.stringify(message))
+				return nil
+			}
+
+			// modo normal → erro fatal
+			i.runtime.ReportRuntimeError(&Token{Lexeme: "assert"}, fmt.Sprintf("Assertion failed: %v", message))
+			return nil
+		},
+	})
 	return interpreter
 }
 
@@ -178,7 +203,7 @@ func (i *Interpreter) VisitUnaryExpr(expr *UnaryExpr) any {
 			return nil
 		}
 		return -right.(float64)
-	case TokenType_BANG:
+	case TokenType_BANG, TokenType_NOT:
 		return !i.isTruthy(right)
 	}
 	return nil
@@ -556,6 +581,20 @@ func (i *Interpreter) VisitDictExpr(expr *DictExpr) any {
 		}
 	}
 	return NewDictInstance(dict)
+}
+
+func (i *Interpreter) VisitSafeExpr(expr *SafeExpr) any {
+	defer func() {
+		if r := recover(); r != nil {
+			if _, ok := r.(RuntimeError); ok {
+				// erro controlado — retorna nil silenciosamente
+				return
+			}
+			panic(r) // outros panics inesperados continuam
+		}
+	}()
+
+	return i.evaluate(expr.Expr)
 }
 
 // ===== Helpers =====

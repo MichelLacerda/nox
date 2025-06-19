@@ -16,6 +16,7 @@ type ExprVisitor interface {
 	VisitListExpr(expr *ListExpr) any
 	VisitIndexExpr(expr *IndexExpr) any
 	VisitDictExpr(expr *DictExpr) any
+	VisitSafeExpr(expr *SafeExpr) any
 }
 type Expr interface {
 	String() string
@@ -163,4 +164,13 @@ func (d *DictPair) String() string {
 
 func (d *DictExpr) Accept(visitor ExprVisitor) any {
 	return visitor.VisitDictExpr(d)
+}
+
+type SafeExpr struct {
+	Expr Expr
+	Name *Token // Optional name for the safe expression
+}
+
+func (s *SafeExpr) Accept(visitor ExprVisitor) any {
+	return visitor.VisitSafeExpr(s)
 }

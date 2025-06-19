@@ -1,0 +1,21 @@
+let dict = {};
+let list = [1, 2, 3];
+
+let result = ?list[4];
+
+if (not result) {
+    print "Index out of bounds, safe access worked as expected.";
+}
+
+result = ?dict["missingKey"];
+
+if (not result) {
+    print "Key not found, safe access worked as expected.";
+}
+
+if (?list.len()) {
+    print "List length is: " + list.len();
+} else {
+    print "Failed to get list length.";
+}
+
