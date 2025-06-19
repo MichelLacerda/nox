@@ -301,6 +301,11 @@ func (i *Interpreter) VisitAssignExpr(expr *AssignExpr) any {
 func (i *Interpreter) VisitCallExpr(expr *CallExpr) any {
 	callee := i.evaluate(expr.Callee)
 
+	if callee == nil {
+		i.runtime.ReportRuntimeError(expr.Parenthesis, "Attempt to call method on nil.")
+		return nil
+	}
+
 	var arguments []any
 	for _, argument := range expr.Arguments {
 		arguments = append(arguments, i.evaluate(argument))
@@ -326,17 +331,21 @@ func (i *Interpreter) VisitCallExpr(expr *CallExpr) any {
 
 func (i *Interpreter) VisitGetExpr(expr *GetExpr) any {
 	object := i.evaluate(expr.Object)
-	if instance, ok := object.(*Instance); ok {
-		value := instance.Get(expr.Name)
-		return value
-	}
 
-	if instance, ok := object.(*Instance); ok {
-		return instance.Get(expr.Name)
-	}
+	switch obj := object.(type) {
+	case *Instance:
+		return obj.Get(expr.Name)
 
-	i.runtime.ReportRuntimeError(expr.Name, "Only instances have properties.")
-	return nil
+	case *ListInstance:
+		return obj.Get(expr.Name)
+
+	case *DictInstance:
+		return obj.Get(expr.Name)
+
+	default:
+		i.runtime.ReportRuntimeError(expr.Name, "Only instances, lists, or dicts have properties.")
+		return nil
+	}
 }
 
 func (i *Interpreter) VisitSetExpr(expr *SetExpr) any {
@@ -466,7 +475,7 @@ func (i *Interpreter) VisitListExpr(expr *ListExpr) any {
 		value := i.evaluate(element)
 		result = append(result, value)
 	}
-	return result
+	return NewListInstance(result)
 }
 
 func (i *Interpreter) VisitIndexExpr(expr *IndexExpr) any {
@@ -519,7 +528,7 @@ func (i *Interpreter) VisitDictExpr(expr *DictExpr) any {
 			return nil
 		}
 	}
-	return dict
+	return NewDictInstance(dict)
 }
 
 // ===== Helpers =====
