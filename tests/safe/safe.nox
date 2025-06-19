@@ -19,3 +19,4 @@ if (?list.len()) {
     print "Failed to get list length.";
 }
 
+assert(?list.len() == 3, "List length should be 3");
