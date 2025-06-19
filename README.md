@@ -321,6 +321,8 @@ print x; // "global"
 | `"wb+"` ou `"w+b"` | Leitura/escrita binária, truncando                |
 | `"ab+"` ou `"a+b"` | Leitura/escrita binária no final                  |
 
+Built-in methods: open, read, read_bytes, readline, write, write_bytes, flush, tell, seek, exists, close
+
 ```nox
 let f = open("example.txt", "w");
 f.write("Hello from Nox!");
@@ -330,6 +332,11 @@ let f2 = open("example.txt", "r");
 let content = f2.read();
 print content;
 f2.close();
+
+with open("README.md", "r") as f {
+    print f;
+    print f.readline();
+}
 ```
 
 ## Utils
