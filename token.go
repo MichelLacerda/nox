@@ -45,6 +45,7 @@ const (
 	TokenType_FALSE
 	TokenType_FUNC
 	TokenType_FOR
+	TokenType_IN
 	TokenType_IF
 	TokenType_NIL
 	TokenType_OR
@@ -92,6 +93,7 @@ var TokenTypeNames = map[TokenType]string{
 	TokenType_FALSE:         "FALSE",
 	TokenType_FUNC:          "FUNC",
 	TokenType_FOR:           "FOR",
+	TokenType_IN:            "IN",
 	TokenType_IF:            "IF",
 	TokenType_NIL:           "NIL",
 	TokenType_OR:            "OR",

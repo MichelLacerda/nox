@@ -8,6 +8,7 @@ var Keywords = map[string]TokenType{
 	"for":    TokenType_FOR,
 	"func":   TokenType_FUNC,
 	"if":     TokenType_IF,
+	"in":     TokenType_IN,
 	"let":    TokenType_LET,
 	"nil":    TokenType_NIL,
 	"or":     TokenType_OR,

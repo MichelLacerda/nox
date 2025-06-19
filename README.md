@@ -4,7 +4,10 @@
 ## Grammar (syntax)
 
 ```ebnf
-program     ::= statement* EOF ; (* EOF is not a Token *)
+(* EOF is not a Token *)
+
+program     ::= statement* EOF ;
+
 statement   ::= block
                 | exprStmt
                 | forStmt
@@ -12,38 +15,66 @@ statement   ::= block
                 | printStmt
                 | returnStmt
                 | whileStmt ;
+
 block       ::= "{" declaration* "}" ;
+
 declaration ::= funcDecl
                 | varDecl
                 | statement
                 | classDecl ;
+
 funcDecl    ::= "func" function ;
+
 function    ::= IDENTIFIER "(" parameters? ")" block;
+
 parameters  ::= IDENTIFIER ( "," IDENTIFIER )* ;
+
 classDecl   ::= "class" IDENTIFIER ( "<" IDENTIFIER )? 
                 "{" function* "}" ;
+
 varDecl     ::= "let" IDENTIFIER ( "=" expression )? ";" ;
+
 exprStmt    ::= expression ";" ;
-forStmt     ::= "for" "(" ( varDecl | exprStmt | ";" )
-                expression? ";"
-                expression? ")" statement ;
+
+forStmt      ::= "for" ( forSignature | block ) ;
+
+forSignature ::= "(" forClause ")" block
+               | identifier "," identifier "in" expression block ;
+
+forClause    ::= (varDecl | exprStmt | ";") expression? ";" expression? ;
+
 ifStmt      ::= "if" "(" expression ")" statement
                 ( "else" statement )? ;
+
 printStmt   ::= "print" expression ";" ;
+
 returnStmt  ::= "return" expression ";" ;
+
 whileStmt   ::= "while" "(" expression ")" statement ;
+
 expression  ::= assignment ;
+
 assignment  ::= ( call "." )? IDENTIFIER "=" assignment 
                 | logic_or ;
+
 logic_or    ::= logic_and ( "or" logic_and )* ;
+
 logic_and   ::= equality ( "and" equality )* ;
+
 equality    ::= comparison ( ( "!=" ) comparison )* ;
+
 comparison  ::= term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
+
 term        ::= factor ( ( "-" | "+" ) factor )* ;
+
 factor      ::= unary ( ( "/" | "*" ) unary )* ;
+
 unary       ::= ( "!" | "-" ) unary | call | primary ;
+
 call        ::= primary ( "(" arguments? ")" | "." IDENTIFIER | "[" expression "]" )* ;
+
 arguments   ::= expression ( "," expression )* ;
+
 primary     ::= NUMBER
                 | STRING
                 | "true"
@@ -52,7 +83,15 @@ primary     ::= NUMBER
                 | "(" expression ")"
                 | "self"
                 | "super" "." IDENTIFIER 
-                | "[" elements? "]" ;
+                | list
+                | dict ;
+
+list            ::= "[" ( expression ( "," expression )* ","? )? "]" ;
+
+dict            ::= "{" (dictEntry ( "," dictEntry )* ","? )? "}" ;
+
+dictEntry       ::= STRING ":" expression ;
+
 elements    ::= expression ( "," expression )* ;
 ```
 
@@ -140,12 +179,42 @@ while (true) {
 ### ✅ For Loop
 
 ```nox
-for (let i = 0; i < len(list); i = i + 1) {
-    print list[i];
+let list = [10, 20, 30];
+for i, v in list {
+    print i, v; // 0 10, 1 20, 2 30
 }
 
-for (;;) {
-    print "This will run forever";
+let dict = {"a": 1, "b": 2};
+for k, v in dict {
+    print k, v; // "a" 1, "b" 2
+}
+
+for k, _ in dict {
+    print  k; // "a", "b"
+}
+
+for _, v in dict {
+    print  v; // 1, 2
+}
+
+for {
+    print "infinite loop";
+}
+
+for v in range(10, 5, -1) {
+    print v; // 10, 9, 8, 7, 6
+}
+
+for v in range(0, 5, 1) {
+    print v; // 0, 1, 2, 3, 4
+}
+
+for v in range(0, 4) {
+    print v; // 0, 1, 2, 3
+}
+
+for a, _ in 1 {
+    print a; // Runtime Error at _: Object is not iterable.
 }
 ```
 

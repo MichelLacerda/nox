@@ -1,9 +1,15 @@
-let a = 0;
-let temp;
+let list = [1, 2, 3, 4, 5];
 
-for (let b = 1; a < 10000; b = temp + b) {
-  print a;
-  temp = a;
-  a = b;
+for index, value in list {
+  print index, value;
 }
 
+let dict = {
+  "a": 1,
+  "b": 2,
+  "c": 3
+};
+
+for key, value in dict {
+  print key, value;
+}

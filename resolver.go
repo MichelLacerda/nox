@@ -228,7 +228,9 @@ func (r *Resolver) VisitIfStmt(stmt *IfStmt) any {
 }
 
 func (r *Resolver) VisitPrintStmt(stmt *PrintStmt) any {
-	r.ResolveExpr(stmt.Expression)
+	for _, expr := range stmt.Expressions {
+		r.ResolveExpr(expr)
+	}
 	return nil
 }
 
@@ -250,6 +252,23 @@ func (r *Resolver) VisitReturnStmt(stmt *ReturnStmt) any {
 func (r *Resolver) VisitWhileStmt(stmt *WhileStmt) any {
 	r.ResolveExpr(stmt.Condition)
 	r.ResolveStatement(stmt.Body)
+	return nil
+}
+
+func (r *Resolver) VisitForInStmt(stmt *ForInStmt) any {
+	r.BeginScope()
+	if stmt.IndexVar != nil {
+		r.Declare(stmt.IndexVar)
+		r.Define(stmt.IndexVar)
+	}
+	if stmt.ValueVar != nil {
+		r.Declare(stmt.ValueVar)
+		r.Define(stmt.ValueVar)
+	}
+
+	r.ResolveExpr(stmt.Iterable)
+	r.ResolveStatement(stmt.Body)
+	r.EndScope()
 	return nil
 }
 

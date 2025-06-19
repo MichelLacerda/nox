@@ -23,6 +23,7 @@ func NewInterpreter(r *Nox) *Interpreter {
 	interpreter.environment = interpreter.globals // Aponta para o global no início
 	interpreter.globals.Define("clock", ClockCallable{})
 	interpreter.globals.Define("len", LenCallable{})
+	interpreter.globals.Define("range", RangeCallable{})
 	return interpreter
 }
 
@@ -70,11 +71,12 @@ func (i *Interpreter) VisitIfStmt(stmt *IfStmt) any {
 }
 
 func (i *Interpreter) VisitPrintStmt(stmt *PrintStmt) any {
-	result := i.evaluate(stmt.Expression)
-	if result != nil {
-		i.runtime.hadRuntimeError = false
+	var parts []string
+	for _, expr := range stmt.Expressions {
+		value := i.evaluate(expr)
+		parts = append(parts, i.stringify(value))
 	}
-	fmt.Println(i.stringify(result))
+	fmt.Println(strings.Join(parts, " "))
 	return nil
 }
 
@@ -310,10 +312,11 @@ func (i *Interpreter) VisitCallExpr(expr *CallExpr) any {
 		return nil
 	}
 
-	if len(arguments) != callable.Arity() {
+	arity := callable.Arity()
+	if arity >= 0 && len(arguments) != arity {
 		i.runtime.ReportRuntimeError(expr.Parenthesis, fmt.Sprintf(
 			"Expected %d arguments but got %d.",
-			callable.Arity(), len(arguments),
+			arity, len(arguments),
 		))
 		return nil
 	}
@@ -412,6 +415,48 @@ func (i *Interpreter) VisitWhileStmt(stmt *WhileStmt) any {
 			return nil
 		}
 	}
+	return nil
+}
+
+func (i *Interpreter) VisitForInStmt(stmt *ForInStmt) any {
+	iterable := i.evaluate(stmt.Iterable)
+
+	switch coll := iterable.(type) {
+	case []any: // list
+		for index, value := range coll {
+			env := NewEnvironment(i.runtime, i.environment)
+
+			if stmt.IndexVar != nil {
+				env.Define(stmt.IndexVar.Lexeme, float64(index))
+			}
+			env.Define(stmt.ValueVar.Lexeme, value)
+
+			i.executeBlock([]Stmt{stmt.Body}, env)
+		}
+
+	case map[string]any: // dict
+		for key, value := range coll {
+			env := NewEnvironment(i.runtime, i.environment)
+
+			if stmt.IndexVar != nil {
+				env.Define(stmt.IndexVar.Lexeme, key)
+			}
+			env.Define(stmt.ValueVar.Lexeme, value)
+
+			i.executeBlock([]Stmt{stmt.Body}, env)
+		}
+
+	case bool: // Inifity Loop: for { ... }
+		if coll {
+			for {
+				i.execute(stmt.Body)
+			}
+		}
+
+	default:
+		i.runtime.ReportRuntimeError(stmt.ValueVar, "Object is not iterable.")
+	}
+
 	return nil
 }
 

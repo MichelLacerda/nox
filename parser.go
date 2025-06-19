@@ -176,7 +176,8 @@ func (p *Parser) VarDeclaration() (Stmt, error) {
 
 func (p *Parser) Statement() (Stmt, error) {
 	if p.Match(TokenType_FOR) {
-		return p.ForStatement()
+		// return p.ForStatement()
+		return p.ForInStatement()
 	}
 
 	if p.Match(TokenType_IF) {
@@ -227,6 +228,67 @@ func (p *Parser) ReturnStatement() (Stmt, error) {
 	return &ReturnStmt{
 		Keyword: keyword,
 		Value:   value,
+	}, nil
+}
+
+func (p *Parser) ForInStatement() (Stmt, error) {
+	// Suporta o estilo Go: for { ... }
+	if p.Match(TokenType_LEFT_BRACE) {
+		bodyStmts, err := p.Block()
+		if err != nil {
+			return nil, err
+		}
+		body := &BlockStmt{Statements: bodyStmts}
+
+		return &ForInStmt{
+			IndexVar: nil,
+			ValueVar: nil,
+			Iterable: &LiteralExpr{Value: true}, // sinaliza loop infinito
+			Body:     body,
+		}, nil
+	}
+
+	// Parse do estilo: for index, value in iterable { ... }
+	// index pode ser "_"
+	var indexVar *Token = nil
+	var valueVar *Token
+
+	// Primeiro identificador
+	firstIdent, err := p.Consume(TokenType_IDENTIFIER, "Expect loop variable.")
+	if err != nil {
+		return nil, err
+	}
+
+	if p.Match(TokenType_COMMA) {
+		indexVar = firstIdent
+		secondIdent, err := p.Consume(TokenType_IDENTIFIER, "Expect value variable after comma.")
+		if err != nil {
+			return nil, err
+		}
+		valueVar = secondIdent
+	} else {
+		valueVar = firstIdent
+	}
+
+	if _, err := p.Consume(TokenType_IN, "Expect 'in' after loop variables."); err != nil {
+		return nil, err
+	}
+
+	iterable, err := p.Expression()
+	if err != nil {
+		return nil, err
+	}
+
+	body, err := p.Statement()
+	if err != nil {
+		return nil, err
+	}
+
+	return &ForInStmt{
+		IndexVar: indexVar,
+		ValueVar: valueVar,
+		Iterable: iterable,
+		Body:     body,
 	}, nil
 }
 
@@ -390,20 +452,25 @@ func (p *Parser) Block() ([]Stmt, error) {
 }
 
 func (p *Parser) PrintStatement() (Stmt, error) {
-	expr, err := p.Expression()
-	if err != nil {
+	var expressions []Expr
+
+	for {
+		expr, err := p.Expression()
+		if err != nil {
+			return nil, err
+		}
+		expressions = append(expressions, expr)
+
+		if !p.Match(TokenType_COMMA) {
+			break
+		}
+	}
+
+	if _, err := p.Consume(TokenType_SEMICOLON, "Expect ';' after value."); err != nil {
 		return nil, err
 	}
 
-	_, err = p.Consume(TokenType_SEMICOLON, "Expect ';' after value.")
-
-	if err != nil {
-		return nil, err
-	}
-
-	return &PrintStmt{
-		Expression: expr,
-	}, nil
+	return &PrintStmt{Expressions: expressions}, nil
 }
 
 func (p *Parser) ExpressionStatement() (Stmt, error) {
@@ -655,25 +722,14 @@ func (p *Parser) Call() (Expr, error) {
 	return expr, nil
 }
 
-func (p *Parser) FinishCall(expr Expr) (Expr, error) {
-	arguments := []Expr{}
-
-	// Se não for o token de fechamento, consome os argumentos
+func (p *Parser) FinishCall(callee Expr) (Expr, error) {
+	var arguments []Expr
 	if !p.Check(TokenType_RIGHT_PAREN) {
 		for {
 			arg, err := p.Expression()
-
 			if err != nil {
 				return nil, err
 			}
-
-			if len(arguments) >= 255 {
-				return nil, ParserError{
-					Token:   p.Peek(),
-					Message: "Cannot have more than 255 arguments.",
-				}
-			}
-
 			arguments = append(arguments, arg)
 
 			if !p.Match(TokenType_COMMA) {
@@ -682,15 +738,14 @@ func (p *Parser) FinishCall(expr Expr) (Expr, error) {
 		}
 	}
 
-	parens, err := p.Consume(TokenType_RIGHT_PAREN, "Expect ')' after arguments.")
-
+	paren, err := p.Consume(TokenType_RIGHT_PAREN, "Expect ')' after arguments.")
 	if err != nil {
 		return nil, err
 	}
 
 	return &CallExpr{
-		Callee:      expr,
-		Parenthesis: parens,
+		Callee:      callee,
+		Parenthesis: paren,
 		Arguments:   arguments,
 	}, nil
 }

@@ -10,6 +10,7 @@ type StmtVisitor interface {
 	VisitReturnStmt(stmt *ReturnStmt) any
 	VisitVarStmt(stmt *VarStmt) any
 	VisitWhileStmt(stmt *WhileStmt) any
+	VisitForInStmt(stmt *ForInStmt) any
 }
 
 type Stmt interface {
@@ -129,7 +130,7 @@ func (i *IfStmt) Accept(visitor StmtVisitor) any {
 
 // PrintStmt represents a print statement in the language.
 type PrintStmt struct {
-	Expression Expr
+	Expressions []Expr
 }
 
 func (p *PrintStmt) Accept(visitor StmtVisitor) any {
@@ -137,7 +138,11 @@ func (p *PrintStmt) Accept(visitor StmtVisitor) any {
 }
 
 func (p *PrintStmt) String() string {
-	return "print " + p.Expression.String() + ";"
+	var result string
+	for _, expr := range p.Expressions {
+		result += expr.String() + " "
+	}
+	return "print " + result + ";"
 }
 
 // ReturnStmt represents a return statement in the language.
@@ -183,6 +188,30 @@ func (w *WhileStmt) String() string {
 
 func (w *WhileStmt) Accept(visitor StmtVisitor) any {
 	return visitor.VisitWhileStmt(w)
+}
+
+// ForInStmt represents a for-in loop statement in the language.
+type ForInStmt struct {
+	IndexVar *Token // pode ser nil, para o `_`
+	ValueVar *Token
+	Iterable Expr
+	Body     Stmt
+}
+
+func (f *ForInStmt) String() string {
+	result := "for "
+	if f.IndexVar != nil {
+		result += f.IndexVar.Lexeme + " in "
+	}
+	if f.ValueVar != nil {
+		result += f.ValueVar.Lexeme + " in "
+	}
+	result += f.Iterable.String() + " {\n" + f.Body.String() + "\n}"
+	return result
+}
+
+func (f *ForInStmt) Accept(visitor StmtVisitor) any {
+	return visitor.VisitForInStmt(f)
 }
 
 // ListStmt represents a list of statements in the language.
