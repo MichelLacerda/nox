@@ -9,17 +9,6 @@ type ListInstance struct {
 	Elements []any
 }
 
-func (l *ListInstance) String() string {
-	if len(l.Elements) == 0 {
-		return "[]"
-	}
-	strs := make([]string, len(l.Elements))
-	for i, el := range l.Elements {
-		strs[i] = fmt.Sprintf("%v", el)
-	}
-	return "[" + strings.Join(strs, ", ") + "]"
-}
-
 func NewListInstance(elements []any) *ListInstance {
 	return &ListInstance{Elements: elements}
 }

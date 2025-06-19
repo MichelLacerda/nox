@@ -312,7 +312,7 @@ Windows: List all `.go` files separated by `==== FILENAME ====`
 
 ```powershell
 Get-ChildItem -Recurse -Filter *.go | ForEach-Object {
-    Write-Host "`n==== $($_.FullName) ====" -ForegroundColor Cyan
+    Write-Host "`n==== $($_.Name) ====" -ForegroundColor Cyan
     Get-Content $_
 }
 ```

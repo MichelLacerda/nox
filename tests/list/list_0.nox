@@ -1,10 +1,5 @@
 let list = [10, 9, 8];
-for (let i = 0; i < len(list); i = i + 1) {
-    print list[i];
-}
 
-let count = 0;
-while (count < len(list)) {
-    print list[count];
-    count = count + 1;
-}
+print "list: ", list;
+
+print "list[0]: ", list[0];

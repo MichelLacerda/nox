@@ -1,9 +1,5 @@
 package main
 
-import (
-	"fmt"
-)
-
 type DictInstance struct {
 	Entries map[string]any
 }
@@ -91,8 +87,4 @@ func (d *DictInstance) Get(name *Token) any {
 	default:
 		return nil
 	}
-}
-
-func (d *DictInstance) String() string {
-	return fmt.Sprintf("<dict %v>", d.Entries)
 }

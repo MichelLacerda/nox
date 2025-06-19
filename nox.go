@@ -19,8 +19,6 @@ func NewNox() *Nox {
 		hadError:        false,
 		hadRuntimeError: false,
 	}
-
-	r.interpreter = NewInterpreter(r)
 	return r
 }
 
@@ -70,7 +68,9 @@ func (n *Nox) RunFile(path string) error {
 
 	fmt.Println("Running file:", path, " ", len(source), "bytes")
 
-	if err := n.Run(string(source)); err != nil {
+	interpreter := NewInterpreter(n, StringifyCompact)
+
+	if err := n.Run(string(source), interpreter); err != nil {
 		fmt.Printf("Error: %v\n", err)
 		if perr, ok := err.(ParserError); ok {
 			n.ErrorAt(perr.Token.line, perr.Message)
@@ -90,6 +90,10 @@ func (n *Nox) RunPrompt() {
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Println("Welcome to Nox! Type 'exit', 'quit' or '\\q' to exit.")
 	fmt.Println("Press ENTER twice to execute multiline input.")
+
+	interpreter := NewInterpreter(n, func(val any) string {
+		return StringifyColor(val, "")
+	})
 
 	for {
 		var lines []string
@@ -121,7 +125,7 @@ func (n *Nox) RunPrompt() {
 		}
 
 		src := strings.Join(lines, "")
-		if err := n.Run(src); err != nil {
+		if err := n.Run(src, interpreter); err != nil {
 			fmt.Printf("Error: %v\n", err)
 		} else {
 			n.hadError = false
@@ -129,7 +133,7 @@ func (n *Nox) RunPrompt() {
 	}
 }
 
-func (n *Nox) Run(source string) error {
+func (n *Nox) Run(source string, interpreter *Interpreter) error {
 	scanner := NewScanner([]rune(source))
 	tokens := scanner.ScanTokens()
 
@@ -140,14 +144,14 @@ func (n *Nox) Run(source string) error {
 		return err
 	}
 
-	resolver := NewResolver(n.interpreter)
+	resolver := NewResolver(interpreter)
 	resolver.ResolveStatements(statements)
 
 	if n.hadError {
 		return fmt.Errorf("parsing failed with errors")
 	}
 
-	n.interpreter.Interpret(statements)
+	interpreter.Interpret(statements)
 
 	return nil
 }

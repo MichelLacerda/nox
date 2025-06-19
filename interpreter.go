@@ -11,14 +11,16 @@ type Interpreter struct {
 	globals     *Environment
 	locals      map[Expr]int
 	environment *Environment
+	stringify   func(value any) string
 }
 
-func NewInterpreter(r *Nox) *Interpreter {
+func NewInterpreter(r *Nox, stringifyFn func(value any) string) *Interpreter {
 	interpreter := &Interpreter{
 		runtime:     r,
 		globals:     NewEnvironment(r, nil),
 		environment: nil, // Inicialmente nil
 		locals:      map[Expr]int{},
+		stringify:   stringifyFn,
 	}
 	interpreter.environment = interpreter.globals // Aponta para o global no início
 	interpreter.globals.Define("clock", ClockCallable{})
@@ -507,6 +509,31 @@ func (i *Interpreter) VisitIndexExpr(expr *IndexExpr) any {
 			return nil
 		}
 		return val
+	case *ListInstance:
+		intIndex, ok := index.(float64)
+		if !ok {
+			i.runtime.ReportRuntimeError(&Token{Type: TokenType_Unknown, Lexeme: "[]"}, "List index must be a number.")
+			return nil
+		}
+		idx := int(intIndex)
+		if idx < 0 || idx >= len(obj.Elements) {
+			i.runtime.ReportRuntimeError(&Token{Type: TokenType_Unknown, Lexeme: "[]"}, fmt.Sprintf("List index out of range: %d", idx))
+			return nil
+		}
+		return obj.Elements[idx]
+
+	case *DictInstance:
+		key, ok := index.(string)
+		if !ok {
+			i.runtime.ReportRuntimeError(&Token{Type: TokenType_Unknown, Lexeme: "{}"}, "Dictionary keys must be strings.")
+			return nil
+		}
+		val, exists := obj.Entries[key]
+		if !exists {
+			i.runtime.ReportRuntimeError(&Token{Type: TokenType_Unknown, Lexeme: "{}"}, fmt.Sprintf("Key '%s' not found in dictionary.", key))
+			return nil
+		}
+		return val
 	default:
 		i.runtime.ReportRuntimeError(&Token{Type: TokenType_Unknown, Lexeme: ""}, "Only lists and dictionaries support indexing.")
 		return nil
@@ -550,48 +577,6 @@ func (i *Interpreter) isTruthy(value any) bool {
 
 func (i *Interpreter) isEqual(a, b any) bool {
 	return reflect.DeepEqual(a, b)
-}
-
-func (i *Interpreter) stringify(value any) string {
-	return i.stringifyWithIndent(value, 0)
-}
-
-func (i *Interpreter) stringifyWithIndent(value any, indent int) string {
-	indentStr := strings.Repeat("  ", indent)
-	nextIndentStr := strings.Repeat("  ", indent+1)
-
-	switch v := value.(type) {
-	case nil:
-		return "nil"
-	case bool:
-		return fmt.Sprintf("%t", v)
-	case float64:
-		return fmt.Sprintf("%g", v)
-	case string:
-		return fmt.Sprintf("%q", v) // Aspas para strings
-	case []any:
-		if len(v) == 0 {
-			return "[]"
-		}
-		var elems []string
-		for _, e := range v {
-			elemStr := i.stringifyWithIndent(e, indent+1)
-			elems = append(elems, nextIndentStr+elemStr)
-		}
-		return "[\n" + strings.Join(elems, ",\n") + "\n" + indentStr + "]"
-	case map[string]any:
-		if len(v) == 0 {
-			return "{}"
-		}
-		var pairs []string
-		for k, val := range v {
-			pairStr := fmt.Sprintf("%s%q: %s", nextIndentStr, k, i.stringifyWithIndent(val, indent+1))
-			pairs = append(pairs, pairStr)
-		}
-		return "{\n" + strings.Join(pairs, ",\n") + "\n" + indentStr + "}"
-	default:
-		return fmt.Sprintf("%v", v)
-	}
 }
 
 // ===== Validação de operandos =====
