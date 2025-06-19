@@ -11,6 +11,9 @@ type StmtVisitor interface {
 	VisitVarStmt(stmt *VarStmt) any
 	VisitWhileStmt(stmt *WhileStmt) any
 	VisitForInStmt(stmt *ForInStmt) any
+	VisitBreakStmt(stmt *BreakStmt) any
+	VisitContinueStmt(stmt *ContinueStmt) any
+	VisitWithStmt(stmt *WithStmt) any
 }
 
 type Stmt interface {
@@ -225,4 +228,49 @@ func (l *ListStmt) String() string {
 		result += stmt.String() + "\n"
 	}
 	return result
+}
+
+// BreakStmt represents a break statement in the language.
+type BreakStmt struct {
+	Keyword *Token
+}
+
+func (b *BreakStmt) String() string {
+	return b.Keyword.Lexeme + ";"
+}
+
+func (b *BreakStmt) Accept(visitor StmtVisitor) any {
+	return visitor.VisitBreakStmt(b)
+}
+
+// ContinueStmt represents a continue statement in the language.
+type ContinueStmt struct {
+	Keyword *Token
+}
+
+func (c *ContinueStmt) String() string {
+	return c.Keyword.Lexeme + ";"
+}
+
+func (c *ContinueStmt) Accept(visitor StmtVisitor) any {
+	return visitor.VisitContinueStmt(c)
+}
+
+type WithStmt struct {
+	Resource Expr   // ex: open("file.txt", "r")
+	Alias    *Token // ex: f
+	Body     Stmt   // ex: bloco { ... }
+}
+
+func (w *WithStmt) String() string {
+	result := "with " + w.Resource.String()
+	if w.Alias != nil {
+		result += " as " + w.Alias.Lexeme
+	}
+	result += " {\n" + w.Body.String() + "\n}"
+	return result
+}
+
+func (w *WithStmt) Accept(visitor StmtVisitor) any {
+	return visitor.VisitWithStmt(w)
 }

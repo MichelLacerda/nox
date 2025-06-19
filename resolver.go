@@ -22,6 +22,7 @@ type Resolver struct {
 	scopes          ResolverStack
 	currentFunction FunctionType
 	currentClass    ClassType
+	insideLoop      bool
 }
 
 func NewResolver(interpreter *Interpreter) *Resolver {
@@ -250,12 +251,22 @@ func (r *Resolver) VisitReturnStmt(stmt *ReturnStmt) any {
 }
 
 func (r *Resolver) VisitWhileStmt(stmt *WhileStmt) any {
+	wasInside := r.insideLoop
+	r.insideLoop = true
+
 	r.ResolveExpr(stmt.Condition)
 	r.ResolveStatement(stmt.Body)
+
+	r.insideLoop = wasInside
 	return nil
 }
 
 func (r *Resolver) VisitForInStmt(stmt *ForInStmt) any {
+	wasInside := r.insideLoop
+	r.insideLoop = true
+
+	r.ResolveExpr(stmt.Iterable)
+
 	r.BeginScope()
 	if stmt.IndexVar != nil {
 		r.Declare(stmt.IndexVar)
@@ -265,10 +276,10 @@ func (r *Resolver) VisitForInStmt(stmt *ForInStmt) any {
 		r.Declare(stmt.ValueVar)
 		r.Define(stmt.ValueVar)
 	}
-
-	r.ResolveExpr(stmt.Iterable)
 	r.ResolveStatement(stmt.Body)
 	r.EndScope()
+
+	r.insideLoop = wasInside
 	return nil
 }
 
@@ -353,4 +364,34 @@ func (r *Resolver) VisitListExpr(expr *ListExpr) any {
 func (r *Resolver) VisitSafeExpr(expr *SafeExpr) any {
 	r.ResolveExpr(expr.Expr)
 	return nil
+}
+
+func (r *Resolver) VisitBreakStmt(stmt *BreakStmt) any {
+	if !r.insideLoop {
+		r.errorToken(stmt.Keyword, "Can't use 'break' outside of a loop.")
+	}
+	return nil
+}
+
+func (r *Resolver) VisitContinueStmt(stmt *ContinueStmt) any {
+	if !r.insideLoop {
+		r.errorToken(stmt.Keyword, "Can't use 'continue' outside of a loop.")
+	}
+	return nil
+}
+
+func (r *Resolver) VisitWithStmt(stmt *WithStmt) any {
+	r.ResolveExpr(stmt.Resource)
+
+	r.BeginScope()
+	r.Declare(stmt.Alias)
+	r.Define(stmt.Alias)
+	r.ResolveStatement(stmt.Body)
+	r.EndScope()
+
+	return nil
+}
+
+func (r *Resolver) errorToken(token *Token, message string) {
+	panic(ParserError{Token: token, Message: message})
 }

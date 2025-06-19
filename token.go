@@ -22,6 +22,7 @@ const (
 	TokenType_SEMICOLON
 	TokenType_SLASH
 	TokenType_STAR
+	TokenType_PERCENT
 
 	// One or two character tokens.
 	TokenType_BANG
@@ -33,6 +34,7 @@ const (
 	TokenType_LESS
 	TokenType_LESS_EQUAL
 	TokenType_QUESTION
+	TokenType_DOUBLE_STAR
 
 	// Literals.
 	TokenType_IDENTIFIER
@@ -58,6 +60,10 @@ const (
 	TokenType_TRUE
 	TokenType_LET
 	TokenType_WHILE
+	TokenType_BREAK
+	TokenType_CONTINUE
+	TokenType_WITH
+	TokenType_AS
 
 	// Unknown or reserved keywords.
 	TokenType_Unknown
@@ -77,7 +83,9 @@ var TokenTypeNames = map[TokenType]string{
 	TokenType_PLUS:          "PLUS",
 	TokenType_SEMICOLON:     "SEMICOLON",
 	TokenType_SLASH:         "SLASH",
+	TokenType_DOUBLE_STAR:   "DOUBLE_STAR",
 	TokenType_STAR:          "STAR",
+	TokenType_PERCENT:       "PERCENT",
 	TokenType_BANG:          "BANG",
 	TokenType_BANG_EQUAL:    "BANG_EQUAL",
 	TokenType_EQUAL:         "EQUAL",
@@ -108,6 +116,10 @@ var TokenTypeNames = map[TokenType]string{
 	TokenType_TRUE:          "TRUE",
 	TokenType_LET:           "LET",
 	TokenType_WHILE:         "WHILE",
+	TokenType_BREAK:         "BREAK",
+	TokenType_CONTINUE:      "CONTINUE",
+	TokenType_WITH:          "WITH",
+	TokenType_AS:            "AS",
 	TokenType_Unknown:       "UNKNOWN",
 }
 

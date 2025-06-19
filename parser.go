@@ -180,6 +180,22 @@ func (p *Parser) Statement() (Stmt, error) {
 		return p.ForInStatement()
 	}
 
+	if p.Match(TokenType_BREAK) {
+		keyword := p.Previous()
+		p.Consume(TokenType_SEMICOLON, "Expect ';' after 'break'.")
+		return &BreakStmt{Keyword: keyword}, nil
+	}
+
+	if p.Match(TokenType_CONTINUE) {
+		keyword := p.Previous()
+		p.Consume(TokenType_SEMICOLON, "Expect ';' after 'continue'.")
+		return &ContinueStmt{Keyword: keyword}, nil
+	}
+
+	if p.Match(TokenType_WITH) {
+		return p.WithStatement()
+	}
+
 	if p.Match(TokenType_IF) {
 		return p.IfStatement()
 	}
@@ -207,6 +223,33 @@ func (p *Parser) Statement() (Stmt, error) {
 	}
 
 	return p.ExpressionStatement()
+}
+
+func (p *Parser) WithStatement() (Stmt, error) {
+	resourceExpr, err := p.Expression()
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err := p.Consume(TokenType_AS, "Expect 'as' after with resource."); err != nil {
+		return nil, err
+	}
+
+	alias, err := p.Consume(TokenType_IDENTIFIER, "Expect variable name after 'as'.")
+	if err != nil {
+		return nil, err
+	}
+
+	body, err := p.Statement()
+	if err != nil {
+		return nil, err
+	}
+
+	return &WithStmt{
+		Resource: resourceExpr,
+		Alias:    alias,
+		Body:     body,
+	}, nil
 }
 
 func (p *Parser) ReturnStatement() (Stmt, error) {
@@ -649,7 +692,7 @@ func (p *Parser) Factor() (Expr, error) {
 		return nil, err
 	}
 
-	for p.Match(TokenType_SLASH, TokenType_STAR) {
+	for p.Match(TokenType_SLASH, TokenType_STAR, TokenType_PERCENT, TokenType_DOUBLE_STAR) {
 		operator := p.Previous()
 		right, err := p.Unary()
 
@@ -934,5 +977,4 @@ func (p *Parser) Synchronize() {
 
 		p.Advance()
 	}
-	return
 }

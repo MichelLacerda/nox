@@ -5,7 +5,6 @@ type BuiltinFunction struct {
 	call  func(interpreter *Interpreter, args []any) any
 }
 
-// ✅ Agora implementa Callable corretamente
 func (b *BuiltinFunction) Arity() int {
 	return b.arity
 }

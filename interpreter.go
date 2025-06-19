@@ -1,7 +1,10 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
+	"math"
+	"os"
 	"reflect"
 	"strings"
 )
@@ -14,6 +17,14 @@ type Interpreter struct {
 	stringify    func(value any) string
 	silentErrors bool
 	debug        bool // Modo de depuração
+}
+
+type BreakSignal struct{}
+
+type ContinueSignal struct{}
+
+type HasMethods interface {
+	GetMethod(name string) any
 }
 
 func NewInterpreter(r *Nox, stringifyFn func(value any) string) *Interpreter {
@@ -49,6 +60,38 @@ func NewInterpreter(r *Nox, stringifyFn func(value any) string) *Interpreter {
 			// modo normal → erro fatal
 			i.runtime.ReportRuntimeError(&Token{Lexeme: "assert"}, fmt.Sprintf("Assertion failed: %v", message))
 			return nil
+		},
+	})
+	interpreter.globals.Define("open", &BuiltinFunction{
+		arity: 2,
+		call: func(i *Interpreter, args []any) any {
+			if len(args) != 2 {
+				i.runtime.ReportRuntimeError(nil, "open() expects 2 arguments.")
+				return nil
+			}
+
+			path, ok1 := args[0].(string)
+			mode, ok2 := args[1].(string)
+			if !ok1 || !ok2 {
+				i.runtime.ReportRuntimeError(&Token{Lexeme: "open"}, "open(path, mode) expects strings")
+				return nil
+			}
+
+			flags, err := parseFileMode(mode)
+			if err != nil {
+				i.runtime.ReportRuntimeError(&Token{Lexeme: "open"}, err.Error())
+				return nil
+			}
+
+			f, err := os.OpenFile(path, flags, 0666)
+			if err != nil {
+				i.runtime.ReportRuntimeError(&Token{Lexeme: "open"}, "failed to open file: "+err.Error())
+				return nil
+			}
+			return &FileObject{
+				file:   f,
+				reader: bufio.NewReader(f),
+			}
 		},
 	})
 	return interpreter
@@ -172,6 +215,36 @@ func (i *Interpreter) VisitClassStmt(stmt *ClassStmt) any {
 	return nil
 }
 
+func (i *Interpreter) VisitBreakStmt(stmt *BreakStmt) any {
+	panic(BreakSignal{})
+}
+
+func (i *Interpreter) VisitContinueStmt(stmt *ContinueStmt) any {
+	panic(ContinueSignal{})
+}
+
+func (i *Interpreter) VisitWithStmt(stmt *WithStmt) any {
+	resource := i.evaluate(stmt.Resource)
+	fmt.Printf("[WITH] Defining alias %s as: %T => %v\n", stmt.Alias.Lexeme, resource, resource)
+
+	env := NewEnvironment(i.runtime, i.environment)
+	env.Define(stmt.Alias.Lexeme, resource)
+
+	defer func() {
+		if file, ok := resource.(*FileObject); ok {
+			if closeFn := file.GetMethod("close"); closeFn != nil {
+				if callable, ok := closeFn.(Callable); ok {
+					defer func() { recover() }()
+					callable.Call(i, []any{})
+				}
+			}
+		}
+	}()
+
+	i.executeBlock([]Stmt{stmt.Body}, env)
+	return nil
+}
+
 func (i *Interpreter) executeBlock(statements []Stmt, environment *Environment) error {
 	previous := i.environment
 	i.environment = environment
@@ -214,6 +287,28 @@ func (i *Interpreter) VisitBinaryExpr(expr *BinaryExpr) any {
 	right := i.evaluate(expr.Right)
 
 	switch expr.Operator.Type {
+	case TokenType_PERCENT:
+		if !i.mustBeNumbers(expr.Operator, left, right) {
+			return nil
+		}
+		if right.(float64) == 0 {
+			i.runtime.ReportRuntimeError(expr.Operator, "Division by zero.")
+			return nil
+		}
+		return float64(int(left.(float64)) % int(right.(float64)))
+	case TokenType_DOUBLE_STAR:
+		if !i.mustBeNumbers(expr.Operator, left, right) {
+			return nil
+		}
+		if right.(float64) < 0 {
+			i.runtime.ReportRuntimeError(expr.Operator, "Exponent must be a non-negative number.")
+			return nil
+		}
+		if left.(float64) == 0 && right.(float64) == 0 {
+			i.runtime.ReportRuntimeError(expr.Operator, "0 raised to the power of 0 is undefined.")
+			return nil
+		}
+		return math.Pow(left.(float64), right.(float64))
 	case TokenType_MINUS:
 		if !i.mustBeNumbers(expr.Operator, left, right) {
 			return nil
@@ -369,8 +464,18 @@ func (i *Interpreter) VisitGetExpr(expr *GetExpr) any {
 	case *DictInstance:
 		return obj.Get(expr.Name)
 
+	case *FileObject:
+		method := obj.GetMethod(expr.Name.Lexeme)
+		if method != nil {
+			return method
+		}
+		i.runtime.ReportRuntimeError(expr.Name,
+			fmt.Sprintf("Undefined property '%s' for file object.", expr.Name.Lexeme))
+		return nil
+
 	default:
-		i.runtime.ReportRuntimeError(expr.Name, "Only instances, lists, or dicts have properties.")
+		i.runtime.ReportRuntimeError(expr.Name,
+			"Only instances, lists, or dicts have properties.")
 		return nil
 	}
 }
@@ -391,11 +496,12 @@ func (i *Interpreter) VisitSetExpr(expr *SetExpr) any {
 func (i *Interpreter) VisitLogicalExpr(expr *LogicalExpr) any {
 	left := i.evaluate(expr.Left)
 
-	if expr.Operator.Type == TokenType_OR {
+	switch expr.Operator.Type {
+	case TokenType_OR:
 		if i.isTruthy(left) {
 			return left
 		}
-	} else if expr.Operator.Type == TokenType_AND {
+	case TokenType_AND:
 		if !i.isTruthy(left) {
 			return left
 		}
@@ -441,15 +547,36 @@ func (i *Interpreter) VisitSelfExpr(expr *SelfExpr) any {
 	return value
 }
 
-func (i *Interpreter) VisitWhileStmt(stmt *WhileStmt) any {
-	previous := i.environment
-	defer func() { i.environment = previous }()
+// func (i *Interpreter) VisitWhileStmt(stmt *WhileStmt) any {
+// 	previous := i.environment
+// 	defer func() { i.environment = previous }()
 
+// 	for i.isTruthy(i.evaluate(stmt.Condition)) {
+// 		i.execute(stmt.Body)
+// 		if i.runtime.hadRuntimeError {
+// 			return nil
+// 		}
+// 	}
+// 	return nil
+// }
+
+func (i *Interpreter) VisitWhileStmt(stmt *WhileStmt) any {
 	for i.isTruthy(i.evaluate(stmt.Condition)) {
-		i.execute(stmt.Body)
-		if i.runtime.hadRuntimeError {
-			return nil
-		}
+		func() {
+			defer func() {
+				if r := recover(); r != nil {
+					switch r.(type) {
+					case BreakSignal:
+						panic(r) // quebra o laço externo
+					case ContinueSignal:
+						// simplesmente ignora, continua o loop
+					default:
+						panic(r)
+					}
+				}
+			}()
+			i.executeBlock([]Stmt{stmt.Body}, i.environment)
+		}()
 	}
 	return nil
 }
@@ -467,7 +594,22 @@ func (i *Interpreter) VisitForInStmt(stmt *ForInStmt) any {
 			}
 			env.Define(stmt.ValueVar.Lexeme, value)
 
-			i.executeBlock([]Stmt{stmt.Body}, env)
+			func() {
+				defer func() {
+					if r := recover(); r != nil {
+						switch r.(type) {
+						case BreakSignal:
+							panic(r) // repassa pro loop pai
+						case ContinueSignal:
+							// ignora, continua o próximo item
+						default:
+							panic(r)
+						}
+					}
+				}()
+
+				i.executeBlock([]Stmt{stmt.Body}, env)
+			}()
 		}
 
 	case map[string]any: // dict
@@ -479,13 +621,44 @@ func (i *Interpreter) VisitForInStmt(stmt *ForInStmt) any {
 			}
 			env.Define(stmt.ValueVar.Lexeme, value)
 
-			i.executeBlock([]Stmt{stmt.Body}, env)
+			func() {
+				defer func() {
+					if r := recover(); r != nil {
+						switch r.(type) {
+						case BreakSignal:
+							panic(r)
+						case ContinueSignal:
+							// ignora
+						default:
+							panic(r)
+						}
+					}
+				}()
+
+				i.executeBlock([]Stmt{stmt.Body}, env)
+			}()
 		}
 
-	case bool: // Inifity Loop: for { ... }
+	case bool: // for { ... } → loop infinito
 		if coll {
 			for {
-				i.execute(stmt.Body)
+				env := NewEnvironment(i.runtime, i.environment)
+				func() {
+					defer func() {
+						if r := recover(); r != nil {
+							switch r.(type) {
+							case BreakSignal:
+								panic(r)
+							case ContinueSignal:
+								// ignora
+							default:
+								panic(r)
+							}
+						}
+					}()
+
+					i.executeBlock([]Stmt{stmt.Body}, env)
+				}()
 			}
 		}
 

@@ -1,4 +1,3 @@
-
 # NOX
 
 ## Grammar (syntax)
@@ -305,6 +304,33 @@ let x = "global";
 print x; // "global"
 ```
 
+### ✅ File
+
+| Modo               | Significado                                       |
+| ------------------ | ------------------------------------------------- |
+| `"r"`              | Leitura (erro se o arquivo não existir)           |
+| `"w"`              | Escrita (cria ou sobrescreve)                     |
+| `"a"`              | Escrita no final do arquivo                       |
+| `"r+"`             | Leitura e escrita (erro se o arquivo não existir) |
+| `"w+"`             | Leitura e escrita (trunca se já existir)          |
+| `"a+"`             | Leitura e escrita no final do arquivo             |
+| `"rb"`             | Leitura binária                                   |
+| `"wb"`             | Escrita binária                                   |
+| `"ab"`             | Escrita binária no final                          |
+| `"rb+"` ou `"r+b"` | Leitura/escrita binária                           |
+| `"wb+"` ou `"w+b"` | Leitura/escrita binária, truncando                |
+| `"ab+"` ou `"a+b"` | Leitura/escrita binária no final                  |
+
+```nox
+let f = open("example.txt", "w");
+f.write("Hello from Nox!");
+f.close();
+
+let f2 = open("example.txt", "r");
+let content = f2.read();
+print content;
+f2.close();
+```
 
 ## Utils
 

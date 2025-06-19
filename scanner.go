@@ -59,7 +59,13 @@ func (s *Scanner) ScanToken() {
 	case ';':
 		s.AddToken(TokenType_SEMICOLON)
 	case '*':
-		s.AddToken(TokenType_STAR)
+		if s.Match('*') {
+			s.AddToken(TokenType_DOUBLE_STAR)
+		} else {
+			s.AddToken(TokenType_STAR)
+		}
+	case '%':
+		s.AddToken(TokenType_PERCENT)
 	case ':':
 		s.AddToken(TokenType_COLON)
 	case '?':

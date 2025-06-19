@@ -169,6 +169,19 @@ func (n *Nox) Run(source string, interpreter *Interpreter) (err error) {
 		return fmt.Errorf("parsing failed with errors")
 	}
 
+	defer func() {
+		if r := recover(); r != nil {
+			switch r.(type) {
+			case BreakSignal, ContinueSignal:
+				// Silenciar: break/continue usados fora de escopo válido ou fora de loop
+				// já tratados no resolver. Aqui são só resíduos que podemos ignorar.
+				return
+			default:
+				panic(r) // repassa qualquer erro real
+			}
+		}
+	}()
+
 	interpreter.Interpret(statements)
 
 	return nil
