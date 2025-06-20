@@ -24,5 +24,5 @@ stats:
 
 .PHONY: build-fmt
 build-fmt:
-	go build -o ./bin/noxfmt.exe .\cmd\fmt\main.go
+	go build -ldflags "-w -s" -o ./bin/noxfmt.exe .\cmd\fmt\main.go
 
