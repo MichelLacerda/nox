@@ -61,23 +61,17 @@ func main() {
 			continue
 		}
 
+		// split comment off the end
+		var comment string
+		if idx := strings.Index(line, "//"); idx != -1 {
+			comment = line[idx:]
+			line = strings.TrimSpace(line[:idx])
+		}
+
 		originalStrings := []string{}
 		line = stringRegex.ReplaceAllStringFunc(line, func(s string) string {
 			originalStrings = append(originalStrings, s)
 			return fmt.Sprintf("__STR%d__", len(originalStrings)-1)
-		})
-
-		lineComments := []string{}
-		blockComments := []string{}
-
-		line = regexp.MustCompile(`//.*`).ReplaceAllStringFunc(line, func(s string) string {
-			lineComments = append(lineComments, s)
-			return fmt.Sprintf("__CMT%d__", len(lineComments)-1)
-		})
-
-		line = regexp.MustCompile(`/\*[^*]*\*/`).ReplaceAllStringFunc(line, func(s string) string {
-			blockComments = append(blockComments, s)
-			return fmt.Sprintf("__CMTB%d__", len(blockComments)-1)
 		})
 
 		line = strings.ReplaceAll(line, "< =", "<=")
@@ -104,12 +98,6 @@ func main() {
 			placeholder := fmt.Sprintf("__STR%d__", i)
 			line = strings.Replace(line, placeholder, str, 1)
 		}
-		for i, comment := range lineComments {
-			line = strings.Replace(line, fmt.Sprintf("__CMT%d__", i), comment, 1)
-		}
-		for i, comment := range blockComments {
-			line = strings.Replace(line, fmt.Sprintf("__CMTB%d__", i), comment, 1)
-		}
 
 		if letCleanup.MatchString(line) {
 			matches := letCleanup.FindStringSubmatch(line)
@@ -117,12 +105,20 @@ func main() {
 		}
 
 		if oneLineBlock.MatchString(line) {
-			formatted = append(formatted, strings.Repeat(indentStr, indent)+line)
+			line = strings.Repeat(indentStr, indent) + line
+			if comment != "" {
+				line += " " + comment
+			}
+			formatted = append(formatted, line)
 			continue
 		}
 
 		if strings.HasSuffix(line, "= {") {
-			formatted = append(formatted, strings.Repeat(indentStr, indent)+line)
+			line = strings.Repeat(indentStr, indent) + line
+			if comment != "" {
+				line += " " + comment
+			}
+			formatted = append(formatted, line)
 			indent++
 			continue
 		}
@@ -131,13 +127,21 @@ func main() {
 			if indent > 0 {
 				indent--
 			}
-			formatted = append(formatted, strings.Repeat(indentStr, indent)+line)
+			line = strings.Repeat(indentStr, indent) + line
+			if comment != "" {
+				line += " " + comment
+			}
+			formatted = append(formatted, line)
 			indent++
 			continue
 		}
 
 		if line == "{" || strings.HasSuffix(line, "{") {
-			formatted = append(formatted, strings.Repeat(indentStr, indent)+line)
+			line = strings.Repeat(indentStr, indent) + line
+			if comment != "" {
+				line += " " + comment
+			}
+			formatted = append(formatted, line)
 			indent++
 			continue
 		}
@@ -151,7 +155,11 @@ func main() {
 				}
 				return m
 			})
-			formatted = append(formatted, strings.Repeat(indentStr, indent)+line)
+			line = strings.Repeat(indentStr, indent) + line
+			if comment != "" {
+				line += " " + comment
+			}
+			formatted = append(formatted, line)
 			indent++
 			continue
 		}
@@ -160,22 +168,34 @@ func main() {
 			if indent > 0 {
 				indent--
 			}
-			formatted = append(formatted, strings.Repeat(indentStr, indent)+line)
+			line = strings.Repeat(indentStr, indent) + line
+			if comment != "" {
+				line += " " + comment
+			}
+			formatted = append(formatted, line)
 			continue
 		}
 
 		if elseRegex.MatchString(line) {
 			if indent > 0 {
 				indent--
-				formatted = append(formatted, strings.Repeat(indentStr, indent)+line)
+				line = strings.Repeat(indentStr, indent) + line
 				indent++
 			} else {
-				formatted = append(formatted, line)
+				line = strings.Repeat(indentStr, indent) + line
 			}
+			if comment != "" {
+				line += " " + comment
+			}
+			formatted = append(formatted, line)
 			continue
 		}
 
-		formatted = append(formatted, strings.Repeat(indentStr, indent)+strings.TrimSpace(line))
+		line = strings.Repeat(indentStr, indent) + strings.TrimSpace(line)
+		if comment != "" {
+			line += " " + comment
+		}
+		formatted = append(formatted, line)
 	}
 
 	writer := bufio.NewWriter(os.Stdout)
