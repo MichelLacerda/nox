@@ -1,7 +1,7 @@
 class Bacon {
-  eat() {
-    print "Crunch crunch crunch!";
-  }
+    eat() {
+        print "Crunch crunch crunch!";
+    }
 }
 
-Bacon().eat(); // Prints "Crunch crunch crunch!".
+Bacon().eat(); // Prints __STR0__.

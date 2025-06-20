@@ -3,5 +3,5 @@ for v in range(1, 10) {
 }
 
 for index, value in range(100, 0, -10) {
-  print index, value;
+    print index, value;
 }

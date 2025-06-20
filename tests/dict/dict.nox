@@ -1,6 +1,9 @@
 let value = {
     "code": 201,
     "message": "Created",
+    "status": "success",
+    "errors": [],
+    "is_success": true,
     "data": {
         "id": 12345,
         "name": "Sample Item",

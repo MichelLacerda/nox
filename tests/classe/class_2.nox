@@ -2,7 +2,7 @@ class Box {
 }
 
 func notMethod(argument) {
-  print "called function with " + argument;
+    print "called function with " + argument;
 }
 
 let box = Box();

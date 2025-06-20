@@ -20,3 +20,5 @@ if (?list.len()) {
 }
 
 assert(?list.len() == 3, "List length should be 3");
+
+let result = list[4];

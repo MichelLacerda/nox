@@ -1,17 +1,17 @@
 class A {
-  method() {
-    print "A method";
-  }
+    method() {
+        print "A method";
+    }
 }
 
 class B < A {
-  method() {
-    print "B method";
-  }
+    method() {
+        print "B method";
+    }
 
-  test() {
-    super.method();
-  }
+    test() {
+        super.method();
+    }
 }
 
 class C < B {}

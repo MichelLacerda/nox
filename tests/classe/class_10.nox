@@ -1,11 +1,11 @@
 class Entity {
-  init(name) {
-    self.name = name;
-  }
-  
-  attack(other) {
-    print "Attacking: " + self.name + " vs " + other;
-  }
+    init(name) {
+        self.name = name;
+    }
+
+    attack(other) {
+        print "Attacking: " + self.name + " vs " + other;
+    }
 }
 
 let entity = Entity("Player");

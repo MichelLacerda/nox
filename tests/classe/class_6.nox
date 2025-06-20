@@ -1,7 +1,7 @@
 class Egotist {
-  speak() {
-    print self;
-  }
+    speak() {
+        print self;
+    }
 }
 
 let method = Egotist().speak;

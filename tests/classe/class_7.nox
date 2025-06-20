@@ -1,8 +1,8 @@
 class Cake {
-  taste() {
-    let adjective = "delicious";
-    print "The " + self.flavor + " cake is " + adjective + "!";
-  }
+    taste() {
+        let adjective = "delicious";
+        print "The " + self.flavor + " cake is " + adjective + "!";
+    }
 }
 
 let cake = Cake();
