@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 )
@@ -225,8 +226,6 @@ func (i *Interpreter) VisitContinueStmt(stmt *ContinueStmt) any {
 
 func (i *Interpreter) VisitWithStmt(stmt *WithStmt) any {
 	resource := i.evaluate(stmt.Resource)
-	fmt.Printf("[WITH] Defining alias %s as: %T => %v\n", stmt.Alias.Lexeme, resource, resource)
-
 	env := NewEnvironment(i.runtime, i.environment)
 	env.Define(stmt.Alias.Lexeme, resource)
 
@@ -457,25 +456,27 @@ func (i *Interpreter) VisitGetExpr(expr *GetExpr) any {
 	switch obj := object.(type) {
 	case *Instance:
 		return obj.Get(expr.Name)
-
 	case *ListInstance:
 		return obj.Get(expr.Name)
-
 	case *DictInstance:
 		return obj.Get(expr.Name)
-
 	case *FileObject:
-		method := obj.GetMethod(expr.Name.Lexeme)
-		if method != nil {
+		if method := obj.GetMethod(expr.Name.Lexeme); method != nil {
 			return method
 		}
+		i.runtime.ReportRuntimeError(expr.Name, fmt.Sprintf("Undefined property '%s' for file object.", expr.Name.Lexeme))
+		return nil
+	case *EnvironmentWrapper:
+		val, ok := obj.Env.Values[expr.Name.Lexeme]
+		if ok {
+			return val
+		}
 		i.runtime.ReportRuntimeError(expr.Name,
-			fmt.Sprintf("Undefined property '%s' for file object.", expr.Name.Lexeme))
+			fmt.Sprintf("Undefined property '%s' in module.", expr.Name.Lexeme))
 		return nil
 
 	default:
-		i.runtime.ReportRuntimeError(expr.Name,
-			"Only instances, lists, or dicts have properties.")
+		i.runtime.ReportRuntimeError(expr.Name, "Only instances, lists, dicts, or modules have properties.")
 		return nil
 	}
 }
@@ -667,6 +668,76 @@ func (i *Interpreter) VisitForInStmt(stmt *ForInStmt) any {
 	}
 
 	return nil
+}
+
+func (i *Interpreter) VisitImportStmt(stmt *ImportStmt) any {
+	path := stmt.Path.Literal.(string)
+	absPath := filepath.Join(i.runtime.WorkingDir, path)
+	if !strings.HasSuffix(absPath, ".nox") {
+		absPath += ".nox"
+	}
+	absPath, err := filepath.Abs(absPath)
+	if err != nil {
+		i.runtime.ReportRuntimeError(stmt.Path, "Invalid import path.")
+		return nil
+	}
+
+	if mod, ok := i.runtime.Modules[absPath]; ok {
+		if stmt.Alias != nil {
+			i.environment.Define(stmt.Alias.Lexeme, mod)
+		} else if wrapper, ok := mod.(*EnvironmentWrapper); ok {
+			for name, val := range wrapper.Env.Values {
+				i.environment.Define(name, val)
+			}
+		}
+		return nil
+	}
+
+	// carrega o módulo normalmente
+	source, err := os.ReadFile(absPath)
+	if err != nil {
+		i.runtime.ReportRuntimeError(stmt.Path, "Failed to read module: "+err.Error())
+		return nil
+	}
+
+	tokens := NewScanner([]rune(string(source))).ScanTokens()
+	stmts, err := NewParser(tokens).Parse()
+	if err != nil {
+		i.runtime.ReportRuntimeError(stmt.Path, "Parse error in module.")
+		return nil
+	}
+
+	modEnv := NewEnvironment(i.runtime, nil)
+
+	// Executa no escopo isolado
+	prevEnv := i.environment
+	i.environment = modEnv
+	resolver := NewResolver(i)
+	resolver.ResolveStatements(stmts)
+	for _, stmt := range stmts {
+		if export, ok := stmt.(*ExportStmt); ok {
+			i.execute(export)
+		}
+	}
+	i.environment = prevEnv
+
+	moduleObj := &EnvironmentWrapper{Env: modEnv}
+	i.runtime.Modules[absPath] = moduleObj
+
+	// Agora sim: define no escopo original
+	if stmt.Alias != nil {
+		i.environment.Define(stmt.Alias.Lexeme, moduleObj)
+	} else {
+		for name, val := range modEnv.Values {
+			i.environment.Define(name, val)
+		}
+	}
+
+	return nil
+}
+
+func (i *Interpreter) VisitExportStmt(stmt *ExportStmt) any {
+	return i.execute(stmt.Declaration)
 }
 
 func (i *Interpreter) VisitListExpr(expr *ListExpr) any {

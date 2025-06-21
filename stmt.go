@@ -14,6 +14,8 @@ type StmtVisitor interface {
 	VisitBreakStmt(stmt *BreakStmt) any
 	VisitContinueStmt(stmt *ContinueStmt) any
 	VisitWithStmt(stmt *WithStmt) any
+	VisitImportStmt(stmt *ImportStmt) any
+	VisitExportStmt(stmt *ExportStmt) any
 }
 
 type Stmt interface {
@@ -273,4 +275,37 @@ func (w *WithStmt) String() string {
 
 func (w *WithStmt) Accept(visitor StmtVisitor) any {
 	return visitor.VisitWithStmt(w)
+}
+
+type ImportStmt struct {
+	// import "<path>"" [as <alias>]
+	Path  *Token // STRING Token, ex: "std/math"
+	Alias *Token // IDENTIFIER Token, ex: "math"
+}
+
+func (i *ImportStmt) String() string {
+	result := "import " + i.Path.Lexeme
+	if i.Alias != nil {
+		result += " as " + i.Alias.Lexeme
+	}
+	return result + ";"
+}
+
+func (i *ImportStmt) Accept(visitor StmtVisitor) any {
+	return visitor.VisitImportStmt(i)
+}
+
+type ExportStmt struct {
+	Declaration Stmt // pode ser VarDecl, FuncDecl, ClassDecl
+}
+
+func (e *ExportStmt) String() string {
+	if e.Declaration == nil {
+		return "export;"
+	}
+	return "export " + e.Declaration.String() + ";"
+}
+
+func (e *ExportStmt) Accept(visitor StmtVisitor) any {
+	return visitor.VisitExportStmt(e)
 }

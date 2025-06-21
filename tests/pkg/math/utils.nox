@@ -1,0 +1,11 @@
+export let PI = 3.14159;
+
+export func square(x) {
+    return x * x;
+}
+
+func circle_area(r) {
+    return PI * square(r);
+}
+
+export class A { }

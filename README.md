@@ -13,14 +13,18 @@ statement   ::= block
                 | ifStmt
                 | printStmt
                 | returnStmt
-                | whileStmt ;
+                | whileStmt
+                | importStmt ;
 
 block       ::= "{" declaration* "}" ;
 
-declaration ::= funcDecl
+declaration ::= exportDecl
+                | funcDecl
                 | varDecl
                 | statement
                 | classDecl ;
+
+exportDecl  ::= "export" (funcDecl | varDecl | classDecl) ;
 
 funcDecl    ::= "func" function ;
 
@@ -50,6 +54,8 @@ printStmt   ::= "print" expression ";" ;
 returnStmt  ::= "return" expression ";" ;
 
 whileStmt   ::= "while" "(" expression ")" statement ;
+
+useStmt     ::= "import" STRING ( "as" IDENTIFIER )? ";" ;
 
 expression  ::= assignment ;
 

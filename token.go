@@ -64,6 +64,8 @@ const (
 	TokenType_CONTINUE
 	TokenType_WITH
 	TokenType_AS
+	TokenType_IMPORT
+	TokenType_EXPORT
 
 	// Unknown or reserved keywords.
 	TokenType_Unknown
@@ -120,6 +122,8 @@ var TokenTypeNames = map[TokenType]string{
 	TokenType_CONTINUE:      "CONTINUE",
 	TokenType_WITH:          "WITH",
 	TokenType_AS:            "AS",
+	TokenType_IMPORT:        "IMPORT",
+	TokenType_EXPORT:        "EXPORT",
 	TokenType_Unknown:       "UNKNOWN",
 }
 

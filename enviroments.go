@@ -8,6 +8,11 @@ type Environment struct {
 	Enclosing *Environment
 }
 
+func (e *Environment) Exists(name string) bool {
+	_, ok := e.Values[name]
+	return ok
+}
+
 func (e *Environment) String() string {
 	return "<environment>"
 }
@@ -91,4 +96,23 @@ func (e *Environment) Ancestor(distance int) *Environment {
 		env = env.Enclosing
 	}
 	return env
+}
+
+type EnvironmentWrapper struct {
+	Env *Environment
+}
+
+func (w *EnvironmentWrapper) TypeName() string {
+	return "Module"
+}
+
+func (w *EnvironmentWrapper) String() string {
+	return "<module>"
+}
+
+func (w *EnvironmentWrapper) Get(name *Token) any {
+	if val, ok := w.Env.Values[name.Lexeme]; ok {
+		return val
+	}
+	return nil
 }

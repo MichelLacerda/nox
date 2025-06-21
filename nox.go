@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -12,12 +13,17 @@ type Nox struct {
 	hadError        bool
 	hadRuntimeError bool
 	interpreter     *Interpreter
+	WorkingDir      string         // pasta onde o script foi carregado ou "." no REPL
+	Modules         map[string]any // cache de módulos importados
 }
 
 func NewNox() *Nox {
 	r := &Nox{
 		hadError:        false,
 		hadRuntimeError: false,
+		interpreter:     nil,
+		WorkingDir:      ".",
+		Modules:         map[string]any{},
 	}
 	return r
 }
@@ -65,6 +71,10 @@ func (n *Nox) RunFile(path string) error {
 		return fmt.Errorf("failed to read file %s: %w", path, err)
 	}
 
+	if absDir, err := filepath.Abs(filepath.Dir(path)); err == nil {
+		n.WorkingDir = absDir
+	}
+
 	fmt.Println("Running file:", path, " ", len(source), "bytes")
 
 	interpreter := NewInterpreter(n, StringifyCompact)
@@ -90,6 +100,12 @@ func (n *Nox) RunFile(path string) error {
 }
 
 func (n *Nox) RunPrompt() {
+	currentPath, err := os.Getwd()
+	if err != nil {
+		fmt.Println("Error getting current working directory:", err)
+		os.Exit(1)
+	}
+	n.WorkingDir = currentPath // Define o diretório de trabalho como atual
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Println("Welcome to Nox! Type 'exit', 'quit' or '\\q' to exit.")
 	fmt.Println("Press ENTER twice to execute multiline input.")

@@ -23,10 +23,11 @@ func main() {
 	commaRegex := regexp.MustCompile(`\s*,\s*`)
 	assignRegex := regexp.MustCompile(`\s*=\s*`)
 	openBlockRegex := regexp.MustCompile(`(?i)(\b(func|if|else if|else|for|class|with)\b[^\{]*)\{`)
-	letCleanup := regexp.MustCompile(`let\s+([a-zA-Z0-9_]+)\s*=\s*(.*)`)
+	letCleanup := regexp.MustCompile(`^(export\s+)?let\s+([a-zA-Z0-9_]+)\s*=\s*(.*)`)
 	elseRegex := regexp.MustCompile(`^(else\b|else if\b)`)
 	oneLineBlock := regexp.MustCompile(`^\s*(class|func|if|for|while|with|else.*)\s*.*\{\s*\}$`)
 	stringRegex := regexp.MustCompile(`"([^"\\]*(\\.[^"\\]*)*)"`)
+	exportRegex := regexp.MustCompile(`(?m)^\s*export\s+(let|func|class)\b`)
 
 	inMultilineComment := false
 	var multilineCommentBlock []string
@@ -99,9 +100,16 @@ func main() {
 			line = strings.Replace(line, placeholder, str, 1)
 		}
 
+		// Ensure export keyword is preserved once
+		if exportRegex.MatchString(line) {
+			line = exportRegex.ReplaceAllString(line, "export $1")
+		}
+
 		if letCleanup.MatchString(line) {
 			matches := letCleanup.FindStringSubmatch(line)
-			line = fmt.Sprintf("let %s = %s", matches[1], matches[2])
+			exportPrefix := strings.TrimSpace(matches[1]) // pode ser "export" ou ""
+			line = fmt.Sprintf("%s let %s = %s", exportPrefix, matches[2], matches[3])
+			line = strings.TrimSpace(line)
 		}
 
 		if oneLineBlock.MatchString(line) {

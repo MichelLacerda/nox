@@ -31,6 +31,7 @@ func NewResolver(interpreter *Interpreter) *Resolver {
 		scopes:          ResolverStack{},
 		currentFunction: FunctionTypeNone,
 		currentClass:    ClassTypeNone,
+		insideLoop:      false,
 	}
 }
 
@@ -389,6 +390,15 @@ func (r *Resolver) VisitWithStmt(stmt *WithStmt) any {
 	r.ResolveStatement(stmt.Body)
 	r.EndScope()
 
+	return nil
+}
+
+func (r *Resolver) VisitImportStmt(stmt *ImportStmt) any {
+	return nil
+}
+
+func (r *Resolver) VisitExportStmt(stmt *ExportStmt) any {
+	r.ResolveStatement(stmt.Declaration)
 	return nil
 }
 

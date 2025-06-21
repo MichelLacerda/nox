@@ -29,6 +29,22 @@ func (p *Parser) Parse() ([]Stmt, error) {
 }
 
 func (p *Parser) declaration() (Stmt, error) {
+	if p.Match(TokenType_EXPORT) {
+		decl, err := p.exportDeclaration()
+		if err != nil {
+			return nil, err
+		}
+		return &ExportStmt{Declaration: decl}, nil
+	}
+
+	if p.Match(TokenType_IMPORT) {
+		stmt, err := p.ImportStmt()
+		if err != nil {
+			return nil, err
+		}
+		return stmt, nil
+	}
+
 	if p.Match(TokenType_CLASS) {
 		stmt, err := p.ClassDeclaration()
 		if err != nil {
@@ -60,6 +76,50 @@ func (p *Parser) declaration() (Stmt, error) {
 		return nil, err // Não sincroniza, apenas retorna o erro
 	}
 	return stmt, nil
+}
+
+func (p *Parser) exportDeclaration() (Stmt, error) {
+	if p.Match(TokenType_FUNC) {
+		return p.Function("function")
+	}
+	if p.Match(TokenType_CLASS) {
+		return p.ClassDeclaration()
+	}
+	if p.Match(TokenType_LET) {
+		return p.VarDeclaration()
+	}
+
+	return nil, ParserError{
+		Token:   p.Peek(),
+		Message: "Expect declaration after 'export'.",
+	}
+}
+
+func (p *Parser) ImportStmt() (Stmt, error) {
+	pathToken, err := p.Consume(TokenType_STRING, "Expect module path.")
+	if err != nil {
+		return nil, err
+	}
+
+	var aliasToken *Token
+	if p.Match(TokenType_AS) {
+		tok := p.Previous()
+
+		if !p.Match(TokenType_IDENTIFIER) {
+			return nil, ParserError{
+				Token:   tok,
+				Message: "Expect identifier after 'as'",
+			}
+		}
+		aliasToken = p.Previous()
+	}
+
+	_, err = p.Consume(TokenType_SEMICOLON, "Expect ';' after use statement.")
+	if err != nil {
+		return nil, err
+	}
+
+	return &ImportStmt{Path: pathToken, Alias: aliasToken}, nil
 }
 
 func (p *Parser) ClassDeclaration() (Stmt, error) {

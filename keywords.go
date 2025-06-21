@@ -23,4 +23,6 @@ var Keywords = map[string]TokenType{
 	"continue": TokenType_CONTINUE,
 	"with":     TokenType_WITH,
 	"as":       TokenType_AS,
+	"import":   TokenType_IMPORT,
+	"export":   TokenType_EXPORT,
 }
