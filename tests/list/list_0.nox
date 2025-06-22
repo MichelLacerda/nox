@@ -1,5 +1,0 @@
-let list = [10, 9, 8];
-
-print "list: ", list;
-
-print "list[0]: ", list[0];

@@ -3,7 +3,7 @@ all: test build build-fmt
 
 .PHONY: build
 build:
-	go build -ldflags "-w -s" -o ./bin/nox.exe .
+	go build -ldflags "-w -s" -o ./bin/nox.exe .\cmd\nox\main.go
 
 .PHONY: test
 test:
@@ -11,12 +11,12 @@ test:
 
 .PHONY: clean
 clean:
-	rm -f ./bin/nox.exe
-	rm -f ./bin/noxfmt.exe
+	rm ./bin/nox.exe
+	rm ./bin/noxfmt.exe
 
 .PHONY: run
 run: build
-	./nox.exe
+	./bin/nox.exe
 
 .PHONY: stats
 stats:

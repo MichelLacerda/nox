@@ -1,0 +1,12 @@
+func sum(a, b) {
+    return a + b;
+}
+
+func main() {
+    print "Hello, Nox!";
+
+    let result = sum(5, 3);
+    print "Result 5 + 3 = " + result;
+}
+
+main();
