@@ -124,17 +124,26 @@ func (p *Parser) ImportStmt() (Stmt, error) {
 
 func (p *Parser) ClassDeclaration() (Stmt, error) {
 	name, err := p.Consume(TokenType_IDENTIFIER, "Expect class name.")
-
 	if err != nil {
 		return nil, err
 	}
 
-	var superclass *VariableExpr
+	var superclass Expr
 	if p.Match(TokenType_LESS) {
-		if _, err := p.Consume(TokenType_IDENTIFIER, "Expect superclass name after '<'."); err != nil {
+		tok, err := p.Consume(TokenType_IDENTIFIER, "Expect superclass name after '<'.")
+		if err != nil {
 			return nil, err
 		}
-		superclass = &VariableExpr{Name: p.Previous()}
+
+		expr := Expr(&VariableExpr{Name: tok})
+		for p.Match(TokenType_DOT) {
+			name, _ := p.Consume(TokenType_IDENTIFIER, "Expect property name after '.'.")
+			expr = &GetExpr{
+				Object: expr,
+				Name:   name,
+			}
+		}
+		superclass = expr
 	}
 
 	if _, err := p.Consume(TokenType_LEFT_BRACE, "Expect '{' before class body."); err != nil {
@@ -144,11 +153,9 @@ func (p *Parser) ClassDeclaration() (Stmt, error) {
 	methods := []*FunctionStmt{}
 	for !p.IsAtEnd() && !p.Check(TokenType_RIGHT_BRACE) {
 		funcStmt, err := p.Function("method")
-
 		if err != nil {
 			return nil, err
 		}
-
 		methods = append(methods, funcStmt)
 	}
 

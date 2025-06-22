@@ -43,11 +43,11 @@ func (b *BlockStmt) Accept(visitor StmtVisitor) any {
 // ClassStmt represents a class declaration statement in the language.
 type ClassStmt struct {
 	Name       *Token
-	Superclass *VariableExpr
+	Superclass Expr
 	Methods    []*FunctionStmt
 }
 
-func NewClassStmt(name *Token, superclass *VariableExpr, methods []*FunctionStmt) *ClassStmt {
+func NewClassStmt(name *Token, superclass Expr, methods []*FunctionStmt) *ClassStmt {
 	return &ClassStmt{
 		Name:       name,
 		Superclass: superclass,

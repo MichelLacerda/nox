@@ -186,11 +186,11 @@ func (i *Interpreter) VisitClassStmt(stmt *ClassStmt) any {
 	var superclass *Class
 
 	if stmt.Superclass != nil {
-		evaluatedSuperclass := i.evaluate(stmt.Superclass)
-		if sc, ok := evaluatedSuperclass.(*Class); ok {
+		evaluated := i.evaluate(stmt.Superclass)
+		if sc, ok := evaluated.(*Class); ok {
 			superclass = sc
 		} else {
-			i.runtime.ReportRuntimeError(stmt.Superclass.Name, "Superclass must be a class.")
+			i.runtime.ReportRuntimeError(stmt.Name, "Superclass must be a class.")
 			return nil
 		}
 	}

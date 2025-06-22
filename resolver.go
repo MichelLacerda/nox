@@ -136,8 +136,10 @@ func (r *Resolver) VisitClassStmt(stmt *ClassStmt) any {
 	r.Define(stmt.Name)
 
 	if stmt.Superclass != nil {
-		if stmt.Name.Lexeme == stmt.Superclass.Name.Lexeme {
-			r.interpreter.runtime.ReportRuntimeError(stmt.Superclass.Name, "A class cannot inherit from itself.")
+		if variable, ok := stmt.Superclass.(*VariableExpr); ok {
+			if stmt.Name.Lexeme == variable.Name.Lexeme {
+				r.interpreter.runtime.ReportRuntimeError(variable.Name, "A class cannot inherit from itself.")
+			}
 		}
 
 		r.currentClass = ClassTypeSubclass

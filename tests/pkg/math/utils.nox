@@ -8,4 +8,8 @@ func circle_area(r) {
     return PI * square(r);
 }
 
-export class A { }
+export class A {
+    rerp() {
+        print "<A>";
+    }
+}
