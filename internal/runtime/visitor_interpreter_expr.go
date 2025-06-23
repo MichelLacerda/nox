@@ -99,6 +99,16 @@ func (i *Interpreter) VisitGetExpr(expr *ast.GetExpr) any {
 		)
 		return nil
 
+	case *MapInstance:
+		if method := obj.Get(expr.Name); method != nil {
+			return method
+		}
+		i.Runtime.ReportRuntimeError(
+			expr.Name,
+			fmt.Sprintf("Undefined property '%s' for map object.", expr.Name.Lexeme),
+		)
+		return nil
+
 	default:
 		i.Runtime.ReportRuntimeError(
 			expr.Name,

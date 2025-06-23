@@ -1,0 +1,13 @@
+print "Abs(-5): ", math.abs(-5) // 5
+print "Sqrt(9): ", math.sqrt(9) // 3
+print "Sin(0): ", math.sin(0) // 0.0
+print "Cos(0): ", math.cos(0) // 1.0
+print "Tan(0): ", math.tan(0) // 0.0
+print "Floor(3.7): ", math.floor(3.7) // 3
+print "Ceil(3.7): ", math.ceil(3.7) // 4
+print "Round(2.4): ", math.round(2.4) // 2
+print "Log(100): ", math.log(100) // 4.605170185988091
+print "Pow(2, 5): ", math.pow(2, 5) // 32
+print "Max(10, 30): ", math.max(10, 30) // 30
+print "Min(10, 30): ", math.min(10, 30) // 10
+print "Floor(2.9): ", math.floor(2.9) // 2

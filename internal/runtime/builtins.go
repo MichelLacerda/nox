@@ -226,159 +226,97 @@ func RegisterFmtBuiltin(i *Interpreter) *BuiltinFunction {
 	}
 }
 
-func RegisterMathBuiltin(i *Interpreter) *BuiltinFunction {
-	mathBuiltins := map[string]*BuiltinFunction{
-		"abs": {
+func RegisterMathBuiltin(i *Interpreter) *MapInstance {
+	return NewMapInstance(map[string]any{
+		"abs": &BuiltinFunction{
 			ArityValue: 1,
 			CallFunc: func(i *Interpreter, args []any) any {
 				n, ok := args[0].(float64)
 				if !ok {
-					i.Runtime.ReportRuntimeError(token.NewToken(token.TokenType_IDENTIFIER, "abs", nil, 0), "Argument must be a number.")
+					i.Runtime.ReportRuntimeError(token.NewToken(token.TokenType_IDENTIFIER, "math.abs", nil, 0), "Argument must be a number.")
 					return nil
 				}
 				return math.Abs(n)
 			},
 		},
-		"sqrt": {
+		"sqrt": &BuiltinFunction{
 			ArityValue: 1,
 			CallFunc: func(i *Interpreter, args []any) any {
 				n, ok := args[0].(float64)
 				if !ok || n < 0 {
-					i.Runtime.ReportRuntimeError(token.NewToken(token.TokenType_IDENTIFIER, "sqrt", nil, 0), "Argument must be a non-negative number.")
+					i.Runtime.ReportRuntimeError(token.NewToken(token.TokenType_IDENTIFIER, "math.sqrt", nil, 0), "Argument must be a non-negative number.")
 					return nil
 				}
 				return math.Sqrt(n)
 			},
 		},
-		"sin": {
-			ArityValue: 1,
-			CallFunc: func(i *Interpreter, args []any) any {
-				n, ok := args[0].(float64)
-				if !ok {
-					i.Runtime.ReportRuntimeError(token.NewToken(token.TokenType_IDENTIFIER, "sin", nil, 0), "Argument must be a number.")
-					return nil
-				}
-				return math.Sin(n)
-			},
-		},
-		"cos": {
-			ArityValue: 1,
-			CallFunc: func(i *Interpreter, args []any) any {
-				n, ok := args[0].(float64)
-				if !ok {
-					i.Runtime.ReportRuntimeError(token.NewToken(token.TokenType_IDENTIFIER, "cos", nil, 0), "Argument must be a number.")
-					return nil
-				}
-				return math.Cos(n)
-			},
-		},
-		"tan": {
-			ArityValue: 1,
-			CallFunc: func(i *Interpreter, args []any) any {
-				n, ok := args[0].(float64)
-				if !ok {
-					i.Runtime.ReportRuntimeError(token.NewToken(token.TokenType_IDENTIFIER, "tan", nil, 0), "Argument must be a number.")
-					return nil
-				}
-				return math.Tan(n)
-			},
-		},
-		"floor": {
-			ArityValue: 1,
-			CallFunc: func(i *Interpreter, args []any) any {
-				n, ok := args[0].(float64)
-				if !ok {
-					i.Runtime.ReportRuntimeError(token.NewToken(token.TokenType_IDENTIFIER, "floor", nil, 0), "Argument must be a number.")
-					return nil
-				}
-				return math.Floor(n)
-			},
-		},
-		"ceil": {
-			ArityValue: 1,
-			CallFunc: func(i *Interpreter, args []any) any {
-				n, ok := args[0].(float64)
-				if !ok {
-					i.Runtime.ReportRuntimeError(token.NewToken(token.TokenType_IDENTIFIER, "ceil", nil, 0), "Argument must be a number.")
-					return nil
-				}
-				return math.Ceil(n)
-			},
-		},
-		"round": {
-			ArityValue: 1,
-			CallFunc: func(i *Interpreter, args []any) any {
-				n, ok := args[0].(float64)
-				if !ok {
-					i.Runtime.ReportRuntimeError(token.NewToken(token.TokenType_IDENTIFIER, "round", nil, 0), "Argument must be a number.")
-					return nil
-				}
-				return math.Round(n)
-			},
-		},
-		"log": {
+		"sin":   mathUnary("math.sin", math.Sin),
+		"cos":   mathUnary("math.cos", math.Cos),
+		"tan":   mathUnary("math.tan", math.Tan),
+		"floor": mathUnary("math.floor", math.Floor),
+		"ceil":  mathUnary("math.ceil", math.Ceil),
+		"round": mathUnary("math.round", math.Round),
+		"exp":   mathUnary("math.exp", math.Exp),
+		"log": &BuiltinFunction{
 			ArityValue: 1,
 			CallFunc: func(i *Interpreter, args []any) any {
 				n, ok := args[0].(float64)
 				if !ok || n <= 0 {
-					i.Runtime.ReportRuntimeError(token.NewToken(token.TokenType_IDENTIFIER, "log", nil, 0), "Argument must be a positive number.")
+					i.Runtime.ReportRuntimeError(token.NewToken(token.TokenType_IDENTIFIER, "math.log", nil, 0), "Argument must be a positive number.")
 					return nil
 				}
 				return math.Log(n)
 			},
 		},
-		"exp": {
-			ArityValue: 1,
-			CallFunc: func(i *Interpreter, args []any) any {
-				n, ok := args[0].(float64)
-				if !ok {
-					i.Runtime.ReportRuntimeError(token.NewToken(token.TokenType_IDENTIFIER, "exp", nil, 0), "Argument must be a number.")
-					return nil
-				}
-				return math.Exp(n)
-			},
-		},
-		"pow": {
-			ArityValue: 2,
-			CallFunc: func(i *Interpreter, args []any) any {
-				base, ok1 := args[0].(float64)
-				exp, ok2 := args[1].(float64)
-				if !ok1 || !ok2 {
-					i.Runtime.ReportRuntimeError(token.NewToken(token.TokenType_IDENTIFIER, "pow", nil, 0), "Both arguments must be numbers.")
-					return nil
-				}
-				return math.Pow(base, exp)
-			},
-		},
-		"max": {
+		"pow": &BuiltinFunction{
 			ArityValue: 2,
 			CallFunc: func(i *Interpreter, args []any) any {
 				a, ok1 := args[0].(float64)
 				b, ok2 := args[1].(float64)
 				if !ok1 || !ok2 {
-					i.Runtime.ReportRuntimeError(token.NewToken(token.TokenType_IDENTIFIER, "max", nil, 0), "Both arguments must be numbers.")
+					i.Runtime.ReportRuntimeError(token.NewToken(token.TokenType_IDENTIFIER, "math.pow", nil, 0), "Arguments must be numbers.")
+					return nil
+				}
+				return math.Pow(a, b)
+			},
+		},
+		"max": &BuiltinFunction{
+			ArityValue: 2,
+			CallFunc: func(i *Interpreter, args []any) any {
+				a, ok1 := args[0].(float64)
+				b, ok2 := args[1].(float64)
+				if !ok1 || !ok2 {
+					i.Runtime.ReportRuntimeError(token.NewToken(token.TokenType_IDENTIFIER, "math.max", nil, 0), "Arguments must be numbers.")
 					return nil
 				}
 				return math.Max(a, b)
 			},
 		},
-		"min": {
+		"min": &BuiltinFunction{
 			ArityValue: 2,
 			CallFunc: func(i *Interpreter, args []any) any {
 				a, ok1 := args[0].(float64)
 				b, ok2 := args[1].(float64)
 				if !ok1 || !ok2 {
-					i.Runtime.ReportRuntimeError(token.NewToken(token.TokenType_IDENTIFIER, "min", nil, 0), "Both arguments must be numbers.")
+					i.Runtime.ReportRuntimeError(token.NewToken(token.TokenType_IDENTIFIER, "math.min", nil, 0), "Arguments must be numbers.")
 					return nil
 				}
 				return math.Min(a, b)
 			},
 		},
-	}
+	})
+}
 
-	for name, fn := range mathBuiltins {
-		i.globals.Define(name, fn)
+func mathUnary(name string, fn func(float64) float64) *BuiltinFunction {
+	return &BuiltinFunction{
+		ArityValue: 1,
+		CallFunc: func(i *Interpreter, args []any) any {
+			n, ok := args[0].(float64)
+			if !ok {
+				i.Runtime.ReportRuntimeError(token.NewToken(token.TokenType_IDENTIFIER, name, nil, 0), "Argument must be a number.")
+				return nil
+			}
+			return fn(n)
+		},
 	}
-
-	return nil
 }
