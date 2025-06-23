@@ -12,7 +12,11 @@ test:
 
 .PHONY: build
 build:
-	GOOS=$(OS) GOARCH=$(ARCH) go build -ldflags "-w -s" -o ./bin/nox$(BIN_EXT) ./cmd/nox/main.go
+	@if [ "$(OS)" = "windows" ]; then \
+		set GOOS=windows && set GOARCH=amd64 && go build -ldflags "-w -s" -o ./bin/nox$(BIN_EXT) ./cmd/nox/main.go; \
+	else \
+		GOOS=$(OS) GOARCH=$(ARCH) go build -ldflags "-w -s" -o ./bin/nox$(BIN_EXT) ./cmd/nox/main.go; \
+	fi
 
 .PHONY: build-fmt
 build-fmt:
