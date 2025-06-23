@@ -55,7 +55,7 @@ returnStmt  ::= "return" expression ";" ;
 
 whileStmt   ::= "while" "(" expression ")" statement ;
 
-useStmt     ::= "import" STRING ( "as" IDENTIFIER )? ";" ;
+importStmt  ::= "import" STRING ( "as" IDENTIFIER )? ";" ;
 
 expression  ::= assignment ;
 

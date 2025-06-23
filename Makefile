@@ -26,3 +26,8 @@ stats:
 build-fmt:
 	go build -ldflags "-w -s" -o ./bin/noxfmt.exe .\cmd\fmt\main.go
 
+.PHONY: install
+install: build build-fmt
+	mkdir "%USERPROFILE%\\.local\\bin" || exit 0
+	copy ".\\bin\\nox.exe" "%USERPROFILE%\\.local\\bin\\nox.exe"
+	copy ".\\bin\\noxfmt.exe" "%USERPROFILE%\\.local\\bin\\noxfmt.exe"
