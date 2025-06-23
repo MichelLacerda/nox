@@ -52,3 +52,13 @@ func (c *Class) FindMethod(name string) (*Function, bool) {
 
 	return nil, false
 }
+
+func (c *Class) IsInstanceOf(class *Class) any {
+	if c == class {
+		return true
+	}
+	if c.Super != nil {
+		return c.Super.IsInstanceOf(class)
+	}
+	return false
+}

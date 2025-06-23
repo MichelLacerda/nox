@@ -134,6 +134,9 @@ func (p *Parser) ImportStmt() (ast.Stmt, error) {
 	// 	return nil, err
 	// }
 
+	// Optional semicolon
+	p.Match(token.TokenType_SEMICOLON)
+
 	return &ast.ImportStmt{Path: pathToken, Alias: aliasToken}, nil
 }
 

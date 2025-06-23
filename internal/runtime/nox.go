@@ -34,7 +34,7 @@ func NewNox() *Nox {
 }
 
 func (n *Nox) ReportRuntimeError(t *token.Token, message string) {
-	panic(RuntimeError{Token: t, Message: message})
+	panic(&RuntimeError{Token: t, Message: message}) // ← usa &
 }
 
 func (n *Nox) RunFile(path string) error {
@@ -58,7 +58,7 @@ func (n *Nox) RunFile(path string) error {
 		case parser.ParserError:
 			interpreter.ErrorAt(err.Token.Line, err.Message)
 			os.Exit(65)
-		case RuntimeError:
+		case *RuntimeError:
 			// já foi exibido em Run()
 			os.Exit(70)
 		default:
@@ -115,7 +115,7 @@ func (n *Nox) RunPrompt() {
 
 		src := strings.Join(lines, "")
 		if err := n.Run(src, interpreter); err != nil {
-			if _, ok := err.(RuntimeError); !ok {
+			if _, ok := err.(*RuntimeError); !ok {
 				// Só imprime erros que NÃO são RuntimeError (ex: ParserError, etc.)
 				fmt.Printf("Error: %v\n", err)
 			}
@@ -128,14 +128,15 @@ func (n *Nox) RunPrompt() {
 func (n *Nox) Run(source string, interpreter *Interpreter) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			if runtimeErr, ok := r.(RuntimeError); ok {
+			if runtimeErr, ok := r.(*RuntimeError); ok {
 				fmt.Println(runtimeErr.Error()) // só a mensagem bonita
 				n.HadRuntimeError = true
 				err = runtimeErr // permite tratamento externo se necessário
 				return
+			} else {
+				panic(r)
 			}
 			// panics inesperados continuam
-			panic(r)
 		}
 	}()
 

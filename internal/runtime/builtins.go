@@ -27,7 +27,7 @@ func (b *BuiltinFunction) Call(interpreter *Interpreter, args []any) any {
 }
 
 func (b *BuiltinFunction) String() string {
-	return "<builtin fn>"
+	return "<builtin fn(" + fmt.Sprint(b.ArityValue) + ")>"
 }
 
 func RegisterClockBuiltin(i *Interpreter) *BuiltinFunction {
@@ -318,5 +318,295 @@ func mathUnary(name string, fn func(float64) float64) *BuiltinFunction {
 			}
 			return fn(n)
 		},
+	}
+}
+
+func RegisterTypeBuiltins(i *Interpreter) *MapInstance {
+	return NewMapInstance(map[string]any{
+		"of": &BuiltinFunction{
+			ArityValue: 1,
+			CallFunc: func(i *Interpreter, args []any) any {
+				if len(args) != 1 {
+					i.Runtime.ReportRuntimeError(nil, "type.of() expects 1 argument.")
+					return nil
+				}
+				return TypeOf(args[0])
+			},
+		},
+		"is": &BuiltinFunction{
+			ArityValue: 2,
+			CallFunc: func(i *Interpreter, args []any) any {
+				if len(args) != 2 {
+					i.Runtime.ReportRuntimeError(nil, "type.is() expects 2 arguments.")
+					return nil
+				}
+				value := args[0]
+				expectedType, ok := args[1].(string)
+				if !ok {
+					i.Runtime.ReportRuntimeError(nil, "type.is() expects the second argument to be a string representing the type.")
+					return nil
+				}
+				actualType := TypeOf(value)
+				return actualType == expectedType
+			},
+		},
+		"is_nil": &BuiltinFunction{
+			ArityValue: 1,
+			CallFunc: func(i *Interpreter, args []any) any {
+				if len(args) != 1 {
+					i.Runtime.ReportRuntimeError(nil, "type.is_nil() expects 1 argument.")
+					return nil
+				}
+				value := args[0]
+				if value == nil {
+					return true
+				}
+				return false
+			},
+		},
+		"is_bool": &BuiltinFunction{
+			ArityValue: 1,
+			CallFunc: func(i *Interpreter, args []any) any {
+				if len(args) != 1 {
+					i.Runtime.ReportRuntimeError(nil, "type.is_bool() expects 1 argument.")
+					return nil
+				}
+				value := args[0]
+				return TypeOf(value) == "bool"
+			},
+		},
+		"is_number": &BuiltinFunction{
+			ArityValue: 1,
+			CallFunc: func(i *Interpreter, args []any) any {
+				if len(args) != 1 {
+					i.Runtime.ReportRuntimeError(nil, "type.is_number() expects 1 argument.")
+					return nil
+				}
+				value := args[0]
+				return TypeOf(value) == "number"
+			},
+		},
+		"is_string": &BuiltinFunction{
+			ArityValue: 1,
+			CallFunc: func(i *Interpreter, args []any) any {
+				if len(args) != 1 {
+					i.Runtime.ReportRuntimeError(nil, "type.is_string() expects 1 argument.")
+					return nil
+				}
+				value := args[0]
+				return TypeOf(value) == "string"
+			},
+		},
+		"is_list": &BuiltinFunction{
+			ArityValue: 1,
+			CallFunc: func(i *Interpreter, args []any) any {
+				if len(args) != 1 {
+					i.Runtime.ReportRuntimeError(nil, "type.is_list() expects 1 argument.")
+					return nil
+				}
+				value := args[0]
+				return TypeOf(value) == "list"
+			},
+		},
+		"is_dict": &BuiltinFunction{
+			ArityValue: 1,
+			CallFunc: func(i *Interpreter, args []any) any {
+				if len(args) != 1 {
+					i.Runtime.ReportRuntimeError(nil, "type.is_dict() expects 1 argument.")
+					return nil
+				}
+				value := args[0]
+				return TypeOf(value) == "dict"
+			},
+		},
+		"is_function": &BuiltinFunction{
+			ArityValue: 1,
+			CallFunc: func(i *Interpreter, args []any) any {
+				if len(args) != 1 {
+					i.Runtime.ReportRuntimeError(nil, "type.is_function() expects 1 argument.")
+					return nil
+				}
+				value := args[0]
+				return TypeOf(value) == "function"
+			},
+		},
+		"is_class": &BuiltinFunction{
+			ArityValue: 1,
+			CallFunc: func(i *Interpreter, args []any) any {
+				if len(args) != 1 {
+					i.Runtime.ReportRuntimeError(nil, "type.is_class() expects 1 argument.")
+					return nil
+				}
+				value := args[0]
+				return TypeOf(value) == "class"
+			},
+		},
+		"is_instance": &BuiltinFunction{
+			ArityValue: 1,
+			CallFunc: func(i *Interpreter, args []any) any {
+				if len(args) != 1 {
+					i.Runtime.ReportRuntimeError(nil, "type.is_instance() expects 1 argument.")
+					return nil
+				}
+				value := args[0]
+				return TypeOf(value) == "instance"
+			},
+		},
+		"is_iterable": &BuiltinFunction{
+			ArityValue: 1,
+			CallFunc: func(i *Interpreter, args []any) any {
+				if len(args) != 1 {
+					i.Runtime.ReportRuntimeError(nil, "type.is_iterable() expects 1 argument.")
+					return nil
+				}
+				value := args[0]
+				t := TypeOf(value)
+				return t == "list" || t == "dict" || t == "string"
+			},
+		},
+		"is_callable": &BuiltinFunction{
+			ArityValue: 1,
+			CallFunc: func(i *Interpreter, args []any) any {
+				if len(args) != 1 {
+					i.Runtime.ReportRuntimeError(nil, "type.is_callable() expects 1 argument.")
+					return nil
+				}
+				value := args[0]
+				t := TypeOf(value)
+				return t == "function" || t == "class"
+			},
+		},
+		"is_truthy": &BuiltinFunction{
+			ArityValue: 1,
+			CallFunc: func(i *Interpreter, args []any) any {
+				if len(args) != 1 {
+					i.Runtime.ReportRuntimeError(nil, "type.is_truthy() expects 1 argument.")
+					return nil
+				}
+				value := args[0]
+				if value == nil {
+					return false
+				}
+				if b, ok := value.(bool); ok {
+					return b
+				}
+				if n, ok := value.(float64); ok {
+					return n != 0
+				}
+				if s, ok := value.(string); ok {
+					return s != ""
+				}
+				if l, ok := value.([]any); ok {
+					return len(l) > 0
+				}
+				if m, ok := value.(map[string]any); ok {
+					return len(m) > 0
+				}
+				return true
+			},
+		},
+		"is_falsey": &BuiltinFunction{
+			ArityValue: 1,
+			CallFunc: func(i *Interpreter, args []any) any {
+				if len(args) != 1 {
+					i.Runtime.ReportRuntimeError(nil, "type.is_falsey() expects 1 argument.")
+					return nil
+				}
+				value := args[0]
+				if value == nil {
+					return true
+				}
+				if b, ok := value.(bool); ok {
+					return !b
+				}
+				if n, ok := value.(float64); ok {
+					return n == 0
+				}
+				if s, ok := value.(string); ok {
+					return s == ""
+				}
+				if l, ok := value.([]any); ok {
+					return len(l) == 0
+				}
+				if m, ok := value.(map[string]any); ok {
+					return len(m) == 0
+				}
+				return false
+			},
+		},
+		"instance_of": &BuiltinFunction{
+			ArityValue: 2,
+			CallFunc: func(i *Interpreter, args []any) any {
+				if len(args) != 2 {
+					i.Runtime.ReportRuntimeError(nil, "type.instance(instance, class) expects 2 arguments.")
+					return nil
+				}
+				instance, ok1 := args[0].(*Instance)
+				class, ok2 := args[1].(*Class)
+				if !ok1 || !ok2 {
+					i.Runtime.ReportRuntimeError(nil, "type.instance(instance, class) expects an instance and a class.")
+					return nil
+				}
+				return instance.IsInstanceOf(class)
+			},
+		},
+	})
+}
+
+func RegisterMathConstants(i *Interpreter) {
+	i.globals.Define("PI", 3.141592)
+	i.globals.Define("E", 2.718281)
+	i.globals.Define("PHI", 1.618033)
+	i.globals.Define("TAU", 6.283185) // tau = 2 * PI
+	i.globals.Define("sqrt2", 1.414213)
+	i.globals.Define("sqrtE", 1.648721)
+	i.globals.Define("sqrtPi", 1.772453)
+	i.globals.Define("sqrtPhi", 1.272019)
+	i.globals.Define("ln2", 0.693147)
+	i.globals.Define("log2E", 1/0.693147)
+	i.globals.Define("ln10", 2.302585)
+	i.globals.Define("log10E", 1/2.302585)
+}
+
+func RegisterBuiltins(i *Interpreter) {
+	i.globals.Define("clock", RegisterClockBuiltin(i))
+	i.globals.Define("len", RegisterLenBuiltin(i))
+	i.globals.Define("range", RegisterRangeBuiltin(i))
+	i.globals.Define("assert", RegisterAssertBuiltin(i))
+	i.globals.Define("open", RegisterIoBuiltins(i))
+	i.globals.Define("math", RegisterMathBuiltin(i))
+	i.globals.Define("fmt", RegisterFmtBuiltin(i))
+	i.globals.Define("type", RegisterTypeBuiltins(i))
+	RegisterMathConstants(i)
+}
+
+func TypeOf(v any) any {
+	switch v.(type) {
+	case nil:
+		return "nil"
+	case bool:
+		return "bool"
+	case float64:
+		return "number"
+	case string:
+		return "string"
+	case []any:
+		return "list"
+	case map[string]any:
+		return "dict"
+	case *BuiltinFunction, *Function:
+		return "function"
+	case *Class:
+		return "class"
+	case *Instance:
+		return "instance"
+	case *TypedInstance:
+		return "const"
+	case *DictInstance:
+		return "dict"
+	case *ListInstance:
+		return "list"
+	default:
+		return "unknown"
 	}
 }

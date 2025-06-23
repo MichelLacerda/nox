@@ -11,12 +11,16 @@ type RuntimeError struct {
 	Message string
 }
 
-func (e RuntimeError) Error() string {
-	return fmt.Sprintf("Runtime Error at %s: %s", e.Token.Lexeme, e.Message)
+func (r *RuntimeError) Error() string {
+	if r.Token != nil {
+		return fmt.Sprintf("[line %d] RuntimeError at '%s': %s",
+			r.Token.Line, r.Token.Lexeme, r.Message)
+	}
+	return fmt.Sprintf("RuntimeError: %s", r.Message)
 }
 
-func NewRuntimeError(token *token.Token, message string) RuntimeError {
-	return RuntimeError{
+func NewRuntimeError(token *token.Token, message string) *RuntimeError {
+	return &RuntimeError{
 		Token:   token,
 		Message: message,
 	}

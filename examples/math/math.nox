@@ -1,3 +1,4 @@
+print "Math module example: "
 print "Abs(-5): ", math.abs(-5) // 5
 print "Sqrt(9): ", math.sqrt(9) // 3
 print "Sin(0): ", math.sin(0) // 0.0
@@ -11,3 +12,18 @@ print "Pow(2, 5): ", math.pow(2, 5) // 32
 print "Max(10, 30): ", math.max(10, 30) // 30
 print "Min(10, 30): ", math.min(10, 30) // 10
 print "Floor(2.9): ", math.floor(2.9) // 2
+
+print "
+Math constants:"
+print "PI: ", PI // 3.141592
+print "E: ", E // 2.718281828459045
+print "Tau: ", TAU // 6.283185
+print "Phi: ", PHI // 1.618033988749895
+print "sqrt(2): ", sqrt2 // 1.4142135623730951
+print "sqrt(E): ", sqrtE // 1.6487212707001282
+print "sqrt(Pi): ", sqrtPi // 1.7724538509055159
+print "sqrt(Phi): ", sqrtPhi // 1.2720196495140689
+print "ln(2): ", ln2 // 0.6931471805599453
+print "log2(E): ", log2E // 1.4426950408889634
+print "ln(10): ", ln10 // 2.302585092994046
+print "log10(E): ", log10E // 0.4342944819032518

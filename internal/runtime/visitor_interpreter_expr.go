@@ -39,15 +39,6 @@ func (i *Interpreter) VisitCallExpr(expr *ast.CallExpr) any {
 		return nil
 	}
 
-	arity := callable.Arity()
-	if arity >= 0 && len(arguments) != arity {
-		i.Runtime.ReportRuntimeError(expr.Parenthesis, fmt.Sprintf(
-			"Expected %d arguments but got %d.",
-			arity, len(arguments),
-		))
-		return nil
-	}
-
 	return callable.Call(i, arguments)
 }
 
@@ -275,7 +266,7 @@ func (i *Interpreter) VisitDictExpr(expr *ast.DictExpr) any {
 func (i *Interpreter) VisitSafeExpr(expr *ast.SafeExpr) any {
 	defer func() {
 		if r := recover(); r != nil {
-			if _, ok := r.(RuntimeError); ok {
+			if _, ok := r.(*RuntimeError); ok {
 				// erro controlado — retorna nil silenciosamente
 				return
 			}

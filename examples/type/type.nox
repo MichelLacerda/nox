@@ -1,0 +1,48 @@
+class A {
+    repr() {
+        return "A instance"
+    }
+}
+class B < A {
+    repr() {
+        return "B instance"
+    }
+}
+
+let a = A()
+let b = B()
+let cube = 2 * 2
+let empty = ""
+let null = nil
+let entered = false
+let array = [1, 2, 3]
+let dict = { "key1": "value1", "key2": "value2" }
+
+func sum(a, b) {
+    return a + b
+}
+
+print a, b
+
+print "A is instance of B? ", type.instance_of(b, A)
+print "B is instance of A? ", type.instance_of(a, B)
+print "'a' is instance? ", type.is_instance(b)
+print "'b' is class? ", type.is_class(a)
+print "type of 'a.repr': ", type.of(a.repr)
+print "type of 'b.repr()': ", type.of(b.repr())
+print "type of 'cube': ", type.of(cube)
+print "'cube' is truthy: ", type.is_truthy(cube)
+print "type of 'cube' is 'number'? ", type.is(cube, "number")
+print "type of 'cube' is 'number'? ", type.is_number(cube)
+print "'empty' is: ", type.of(empty)
+print "'empty' is string? ", type.is_string(empty)
+print "'empty' is truthy? ", type.is_truthy(empty)
+print "'empty' is falsey? ", type.is_falsey(empty)
+print "'null' is nil?", type.is_nil(null)
+print "'entered' is boolean? ", type.is_bool(entered)
+print "'array' is list? ", type.is_list(array)
+print "'array' is iterable? ", type.is_iterable(array)
+print "'dict' is dict? ", type.is_dict(dict)
+print "type of 'sum': ", type.of(sum)
+print "type of 'sum' is function? ", type.is_function(sum)
+print "type of 'sum' is callable? ", type.is_callable(sum)

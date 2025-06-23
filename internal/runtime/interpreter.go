@@ -34,13 +34,7 @@ func NewInterpreter(r *Nox, colored bool) *Interpreter {
 		Colored:      colored, // Cores ativadas por padrão
 	}
 	interpreter.environment = interpreter.globals // Aponta para o global no início
-	interpreter.globals.Define("clock", RegisterClockBuiltin(interpreter))
-	interpreter.globals.Define("len", RegisterLenBuiltin(interpreter))
-	interpreter.globals.Define("range", RegisterRangeBuiltin(interpreter))
-	interpreter.globals.Define("assert", RegisterAssertBuiltin(interpreter))
-	interpreter.globals.Define("open", RegisterIoBuiltins(interpreter))
-	interpreter.globals.Define("math", RegisterMathBuiltin(interpreter))
-	interpreter.globals.Define("fmt", RegisterFmtBuiltin(interpreter))
+	RegisterBuiltins(interpreter)
 
 	return interpreter
 }

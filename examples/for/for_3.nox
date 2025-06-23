@@ -1,3 +1,9 @@
+let break_condition = 0;
+
 for {
+    break_condition = break_condition + 1;
     print "This will run forever";
+    if break_condition > 10 {
+        break;
+    }
 }
