@@ -53,9 +53,9 @@ func (v *VarStmt) String() string {
 	return "let " + v.Name.Lexeme + " = " + v.Initializer.String() + ";"
 }
 
-func (w *WhileStmt) String() string {
-	return "while " + w.Condition.String() + " {\n" + w.Body.String() + "\n}"
-}
+// func (w *WhileStmt) String() string {
+// 	return "while " + w.Condition.String() + " {\n" + w.Body.String() + "\n}"
+// }
 
 func (f *ForInStmt) String() string {
 	result := "for "

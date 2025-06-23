@@ -141,26 +141,26 @@ func (i *Interpreter) VisitWithStmt(stmt *ast.WithStmt) any {
 	return nil
 }
 
-func (i *Interpreter) VisitWhileStmt(stmt *ast.WhileStmt) any {
-	for i.isTruthy(i.evaluate(stmt.Condition)) {
-		func() {
-			defer func() {
-				if r := recover(); r != nil {
-					switch r.(type) {
-					case signal.BreakSignal:
-						panic(r) // quebra o laço externo
-					case signal.ContinueSignal:
-						// simplesmente ignora, continua o loop
-					default:
-						panic(r)
-					}
-				}
-			}()
-			i.ExecuteBlock([]ast.Stmt{stmt.Body}, i.environment)
-		}()
-	}
-	return nil
-}
+// func (i *Interpreter) VisitWhileStmt(stmt *ast.WhileStmt) any {
+// 	for i.isTruthy(i.evaluate(stmt.Condition)) {
+// 		func() {
+// 			defer func() {
+// 				if r := recover(); r != nil {
+// 					switch r.(type) {
+// 					case signal.BreakSignal:
+// 						panic(r) // quebra o laço externo
+// 					case signal.ContinueSignal:
+// 						// simplesmente ignora, continua o loop
+// 					default:
+// 						panic(r)
+// 					}
+// 				}
+// 			}()
+// 			i.ExecuteBlock([]ast.Stmt{stmt.Body}, i.environment)
+// 		}()
+// 	}
+// 	return nil
+// }
 
 func (i *Interpreter) VisitForInStmt(stmt *ast.ForInStmt) any {
 	iterable := i.evaluate(stmt.Iterable)

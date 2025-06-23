@@ -116,16 +116,16 @@ func (r *Resolver) VisitReturnStmt(stmt *ast.ReturnStmt) any {
 	return nil
 }
 
-func (r *Resolver) VisitWhileStmt(stmt *ast.WhileStmt) any {
-	wasInside := r.insideLoop
-	r.insideLoop = true
+// func (r *Resolver) VisitWhileStmt(stmt *ast.WhileStmt) any {
+// 	wasInside := r.insideLoop
+// 	r.insideLoop = true
 
-	r.ResolveExpr(stmt.Condition)
-	r.ResolveStatement(stmt.Body)
+// 	r.ResolveExpr(stmt.Condition)
+// 	r.ResolveStatement(stmt.Body)
 
-	r.insideLoop = wasInside
-	return nil
-}
+// 	r.insideLoop = wasInside
+// 	return nil
+// }
 
 func (r *Resolver) VisitForInStmt(stmt *ast.ForInStmt) any {
 	wasInside := r.insideLoop

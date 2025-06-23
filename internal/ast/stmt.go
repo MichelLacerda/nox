@@ -55,10 +55,10 @@ type VarStmt struct {
 	Initializer Expr
 }
 
-type WhileStmt struct {
-	Condition Expr
-	Body      Stmt
-}
+// type WhileStmt struct {
+// 	Condition Expr
+// 	Body      Stmt
+// }
 
 type ForInStmt struct {
 	IndexVar *token.Token // pode ser nil, para o `_`

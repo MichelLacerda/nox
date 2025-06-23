@@ -9,7 +9,7 @@ type StmtVisitor interface {
 	VisitPrintStmt(stmt *PrintStmt) any
 	VisitReturnStmt(stmt *ReturnStmt) any
 	VisitVarStmt(stmt *VarStmt) any
-	VisitWhileStmt(stmt *WhileStmt) any
+	// VisitWhileStmt(stmt *WhileStmt) any
 	VisitForInStmt(stmt *ForInStmt) any
 	VisitBreakStmt(stmt *BreakStmt) any
 	VisitContinueStmt(stmt *ContinueStmt) any
@@ -50,9 +50,9 @@ func (v *VarStmt) Accept(visitor StmtVisitor) any {
 	return visitor.VisitVarStmt(v)
 }
 
-func (w *WhileStmt) Accept(visitor StmtVisitor) any {
-	return visitor.VisitWhileStmt(w)
-}
+// func (w *WhileStmt) Accept(visitor StmtVisitor) any {
+// 	return visitor.VisitWhileStmt(w)
+// }
 
 func (f *ForInStmt) Accept(visitor StmtVisitor) any {
 	return visitor.VisitForInStmt(f)

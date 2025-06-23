@@ -130,10 +130,9 @@ func (p *Parser) ImportStmt() (ast.Stmt, error) {
 		aliasToken = p.Previous()
 	}
 
-	_, err = p.Consume(token.TokenType_SEMICOLON, "Expect ';' after use statement.")
-	if err != nil {
-		return nil, err
-	}
+	// if _, err := p.Consume(token.TokenType_SEMICOLON, "Expect ';' after use statement."); err != nil {
+	// 	return nil, err
+	// }
 
 	return &ast.ImportStmt{Path: pathToken, Alias: aliasToken}, nil
 }
@@ -246,13 +245,16 @@ func (p *Parser) VarDeclaration() (ast.Stmt, error) {
 	}
 
 	// Permite ;, fim de bloco ou EOF como final de declaração
-	if !(p.Match(token.TokenType_SEMICOLON) || p.Check(token.TokenType_RIGHT_BRACE) || p.Check(token.TokenType_EOF)) {
-		// Usa o token da variável para reportar a linha correta
-		return nil, ParserError{
-			Token:   name,
-			Message: "Expect ';' after variable declaration.",
-		}
-	}
+	// if !(p.Match(token.TokenType_SEMICOLON) || p.Check(token.TokenType_RIGHT_BRACE) || p.Check(token.TokenType_EOF)) {
+	// 	// Usa o token da variável para reportar a linha correta
+	// 	return nil, ParserError{
+	// 		Token:   name,
+	// 		Message: "Expect ';' after variable declaration.",
+	// 	}
+	// }
+
+	// Optional semicolon
+	p.Match(token.TokenType_SEMICOLON)
 
 	return &ast.VarStmt{Name: name, Initializer: initializer}, nil
 }
@@ -265,13 +267,17 @@ func (p *Parser) Statement() (ast.Stmt, error) {
 
 	if p.Match(token.TokenType_BREAK) {
 		keyword := p.Previous()
-		p.Consume(token.TokenType_SEMICOLON, "Expect ';' after 'break'.")
+		// p.Consume(token.TokenType_SEMICOLON, "Expect ';' after 'break'.")
+		// Optional semicolon
+		p.Match(token.TokenType_SEMICOLON)
 		return &ast.BreakStmt{Keyword: keyword}, nil
 	}
 
 	if p.Match(token.TokenType_CONTINUE) {
 		keyword := p.Previous()
-		p.Consume(token.TokenType_SEMICOLON, "Expect ';' after 'continue'.")
+		// p.Consume(token.TokenType_SEMICOLON, "Expect ';' after 'continue'.")
+		p.Match(token.TokenType_SEMICOLON)
+		p.Match(token.TokenType_SEMICOLON)
 		return &ast.ContinueStmt{Keyword: keyword}, nil
 	}
 
@@ -291,9 +297,9 @@ func (p *Parser) Statement() (ast.Stmt, error) {
 		return p.ReturnStatement()
 	}
 
-	if p.Match(token.TokenType_WHILE) {
-		return p.WhileStatement()
-	}
+	// if p.Match(token.TokenType_WHILE) {
+	// 	return p.WhileStatement()
+	// }
 
 	if p.Match(token.TokenType_LEFT_BRACE) {
 		stmts, err := p.Block()
@@ -347,9 +353,12 @@ func (p *Parser) ReturnStatement() (ast.Stmt, error) {
 		}
 	}
 
-	if _, err := p.Consume(token.TokenType_SEMICOLON, "Expect ';' after return value."); err != nil {
-		return nil, err
-	}
+	// if _, err := p.Consume(token.TokenType_SEMICOLON, "Expect ';' after return value."); err != nil {
+	// 	return nil, err
+	// }
+
+	// Optional semicolon
+	p.Match(token.TokenType_SEMICOLON)
 
 	return &ast.ReturnStmt{
 		Keyword: keyword,
@@ -418,125 +427,128 @@ func (p *Parser) ForInStatement() (ast.Stmt, error) {
 	}, nil
 }
 
-func (p *Parser) ForStatement() (ast.Stmt, error) {
-	if _, err := p.Consume(token.TokenType_LEFT_PAREN, "Expect '(' after 'for'."); err != nil {
-		return nil, err
-	}
+// func (p *Parser) ForStatement() (ast.Stmt, error) {
+// 	if _, err := p.Consume(token.TokenType_LEFT_PAREN, "Expect '(' after 'for'."); err != nil {
+// 		return nil, err
+// 	}
 
-	var initializer ast.Stmt
-	if p.Match(token.TokenType_SEMICOLON) {
-		initializer = nil
-	} else if p.Match(token.TokenType_LET) {
-		varDecl, err := p.VarDeclaration()
-		if err != nil {
-			return nil, err
-		}
-		initializer = varDecl
-	} else {
-		stmt, err := p.ExpressionStatement()
-		if err != nil {
-			return nil, err
-		}
-		initializer = stmt
-	}
+// 	var initializer ast.Stmt
+// 	if p.Match(token.TokenType_SEMICOLON) {
+// 		initializer = nil
+// 	} else if p.Match(token.TokenType_LET) {
+// 		varDecl, err := p.VarDeclaration()
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 		initializer = varDecl
+// 	} else {
+// 		stmt, err := p.ExpressionStatement()
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 		initializer = stmt
+// 	}
 
-	var condition ast.Expr
-	if !p.Check(token.TokenType_SEMICOLON) {
-		var err error
-		condExpr, err := p.Expression()
-		if err != nil {
-			return nil, err
-		}
-		condition = condExpr
-	}
+// 	var condition ast.Expr
+// 	if !p.Check(token.TokenType_SEMICOLON) {
+// 		var err error
+// 		condExpr, err := p.Expression()
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 		condition = condExpr
+// 	}
 
-	if _, err := p.Consume(token.TokenType_SEMICOLON, "Expect ';' after loop condition."); err != nil {
-		return nil, err
-	}
+// 	// if _, err := p.Consume(token.TokenType_SEMICOLON, "Expect ';' after loop condition."); err != nil {
+// 	// 	return nil, err
+// 	// }
 
-	var increment ast.Expr
-	if !p.Check(token.TokenType_RIGHT_PAREN) {
-		exprInc, err := p.Expression()
-		if err != nil {
-			return nil, err
-		}
-		increment = exprInc
-	}
-	p.Consume(token.TokenType_RIGHT_PAREN, "Expect ')' after for clauses.")
+// 	var increment ast.Expr
+// 	if !p.Check(token.TokenType_RIGHT_PAREN) {
+// 		exprInc, err := p.Expression()
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 		increment = exprInc
+// 	}
+// 	p.Consume(token.TokenType_RIGHT_PAREN, "Expect ')' after for clauses.")
 
-	body, err := p.Statement()
-	if err != nil {
-		return nil, err
-	}
+// 	body, err := p.Statement()
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	// Sempre cria um novo bloco para o incremento, mesmo se body já for bloco
-	if increment != nil {
-		var stmts []ast.Stmt
-		if block, ok := body.(*ast.BlockStmt); ok {
-			stmts = append([]ast.Stmt{}, block.Statements...)
-			stmts = append(stmts, &ast.ExpressionStmt{Expression: increment})
-		} else {
-			stmts = []ast.Stmt{body, &ast.ExpressionStmt{Expression: increment}}
-		}
-		body = &ast.BlockStmt{Statements: stmts}
-	}
+// 	// Sempre cria um novo bloco para o incremento, mesmo se body já for bloco
+// 	if increment != nil {
+// 		var stmts []ast.Stmt
+// 		if block, ok := body.(*ast.BlockStmt); ok {
+// 			stmts = append([]ast.Stmt{}, block.Statements...)
+// 			stmts = append(stmts, &ast.ExpressionStmt{Expression: increment})
+// 		} else {
+// 			stmts = []ast.Stmt{body, &ast.ExpressionStmt{Expression: increment}}
+// 		}
+// 		body = &ast.BlockStmt{Statements: stmts}
+// 	}
 
-	if condition == nil {
-		condition = &ast.LiteralExpr{Value: true}
-	}
+// 	if condition == nil {
+// 		condition = &ast.LiteralExpr{Value: true}
+// 	}
 
-	body = &ast.WhileStmt{
-		Condition: condition,
-		Body:      body,
-	}
+// 	body = &ast.WhileStmt{
+// 		Condition: condition,
+// 		Body:      body,
+// 	}
 
-	if initializer != nil {
-		body = &ast.BlockStmt{
-			Statements: []ast.Stmt{initializer, body},
-		}
-	}
+// 	if initializer != nil {
+// 		body = &ast.BlockStmt{
+// 			Statements: []ast.Stmt{initializer, body},
+// 		}
+// 	}
 
-	return body, nil
-}
+// 	return body, nil
+// }
 
-func (p *Parser) WhileStatement() (ast.Stmt, error) {
-	if _, err := p.Consume(token.TokenType_LEFT_PAREN, "Expect '(' after 'while'."); err != nil {
-		return nil, err
-	}
+// func (p *Parser) WhileStatement() (ast.Stmt, error) {
+// 	if _, err := p.Consume(token.TokenType_LEFT_PAREN, "Expect '(' after 'while'."); err != nil {
+// 		return nil, err
+// 	}
 
-	condition, err := p.Expression()
-	if err != nil {
-		return nil, err
-	}
+// 	condition, err := p.Expression()
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	if _, err := p.Consume(token.TokenType_RIGHT_PAREN, "Expect ')' after while condition."); err != nil {
-		return nil, err
-	}
+// 	if _, err := p.Consume(token.TokenType_RIGHT_PAREN, "Expect ')' after while condition."); err != nil {
+// 		return nil, err
+// 	}
 
-	body, err := p.Statement()
-	if err != nil {
-		return nil, err
-	}
+// 	body, err := p.Statement()
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	return &ast.WhileStmt{
-		Condition: condition,
-		Body:      body,
-	}, nil
-}
+// 	return &ast.WhileStmt{
+// 		Condition: condition,
+// 		Body:      body,
+// 	}, nil
+// }
 
 func (p *Parser) IfStatement() (ast.Stmt, error) {
-	if _, err := p.Consume(token.TokenType_LEFT_PAREN, "Expect '(' after 'if'."); err != nil {
-		return nil, err
-	}
+	// if _, err := p.Consume(token.TokenType_LEFT_PAREN, "Expect '(' after 'if'."); err != nil {
+	// 	return nil, err
+	// }
+	p.Match(token.TokenType_LEFT_PAREN)
 
 	condition, err := p.Expression()
 	if err != nil {
 		return nil, err
 	}
 
-	if _, err := p.Consume(token.TokenType_RIGHT_PAREN, "Expect ')' after if condition."); err != nil {
-		return nil, err
-	}
+	p.Match(token.TokenType_RIGHT_PAREN)
+
+	// if _, err := p.Consume(token.TokenType_RIGHT_PAREN, "Expect ')' after if condition."); err != nil {
+	// 	return nil, err
+	// }
 
 	thenStmt, err := p.Statement()
 	if err != nil {
@@ -592,9 +604,12 @@ func (p *Parser) PrintStatement() (ast.Stmt, error) {
 		}
 	}
 
-	if _, err := p.Consume(token.TokenType_SEMICOLON, "Expect ';' after value."); err != nil {
-		return nil, err
-	}
+	// if _, err := p.Consume(token.TokenType_SEMICOLON, "Expect ';' after value."); err != nil {
+	// 	return nil, err
+	// }
+
+	// Optional semicolon
+	p.Match(token.TokenType_SEMICOLON)
 
 	return &ast.PrintStmt{Expressions: expressions}, nil
 }
@@ -605,7 +620,9 @@ func (p *Parser) ExpressionStatement() (ast.Stmt, error) {
 		return nil, err
 	}
 
-	p.Consume(token.TokenType_SEMICOLON, "Expect ';' after expression.")
+	// p.Consume(token.TokenType_SEMICOLON, "Expect ';' after expression.")
+	// Optional semicolon
+	p.Match(token.TokenType_SEMICOLON)
 
 	return &ast.ExpressionStmt{
 		Expression: expr,
