@@ -1,46 +1,45 @@
+# Variáveis para configuração de build
+OS ?= windows
+ARCH ?= amd64
+BIN_EXT = $(if $(filter $(OS),windows),.exe,)
+
 .PHONY: all
-all: test build-w64 build-fmt-w64
-
-.PHONY: build-w64
-build-w64:
-	go build -ldflags "-w -s" -o ./bin/nox.exe .\cmd\nox\main.go
-
-.PHONY: build-linux
-build-linux:
-	GOOS=linux GOARCH=amd64 go build -ldflags "-w -s" -o ./bin/nox ./cmd/nox/main.go
+all: test build build-fmt
 
 .PHONY: test
 test:
 	go test -v ./...
 
-.PHONY: clean-w64
-clean-w64:
-	rm ./bin/nox.exe
-	rm ./bin/noxfmt.exe
+.PHONY: build
+build:
+	GOOS=$(OS) GOARCH=$(ARCH) go build -ldflags "-w -s" -o ./bin/nox$(BIN_EXT) ./cmd/nox/main.go
 
-.PHONY: run-w64
-run-w64: build-w64
-	./bin/nox.exe
+.PHONY: build-fmt
+build-fmt:
+	GOOS=$(OS) GOARCH=$(ARCH) go build -ldflags "-w -s" -o ./bin/noxfmt$(BIN_EXT) ./cmd/fmt/main.go
 
-.PHONY: stats
-stats:
-	cloc . --exclude-dir=vendor,assets,docs,examples,tests
+.PHONY: clean
+clean:
+	rm -f ./bin/nox$(BIN_EXT)
+	rm -f ./bin/noxfmt$(BIN_EXT)
 
-.PHONY: build-fmt-w64
-build-fmt-w64:
-	go build -ldflags "-w -s" -o ./bin/noxfmt.exe .\cmd\fmt\main.go
+.PHONY: run
+run: build
+	./bin/nox$(BIN_EXT)
 
-.PHONY: build-fmt-linux
-build-fmt-linux:
-	GOOS=linux GOARCH=amd64 go build -ldflags "-w -s " -o ./bin/noxfmt ./cmd/fmt/main.go
+.PHONY: install
+install: build build-fmt
+	@if [ "$(OS)" = "windows" ]; then \
+		mkdir "%USERPROFILE%\\.local\\bin" || exit 0; \
+		copy ".\\bin\\nox$(BIN_EXT)" "%USERPROFILE%\\.local\\bin\\nox$(BIN_EXT)"; \
+		copy ".\\bin\\noxfmt$(BIN_EXT)" "%USERPROFILE%\\.local\\bin\\noxfmt$(BIN_EXT)"; \
+	else \
+		mkdir -p $(HOME)/.local/bin || exit 0; \
+		cp ./bin/nox$(BIN_EXT) $(HOME)/.local/bin/nox$(BIN_EXT); \
+		cp ./bin/noxfmt$(BIN_EXT) $(HOME)/.local/bin/noxfmt$(BIN_EXT); \
+	fi
 
-.PHONY: install-w64
-install-w64: build-w64 build-fmt-w64
-	mkdir "%USERPROFILE%\\.local\\bin" || exit 0
-	copy ".\\bin\\nox.exe" "%USERPROFILE%\\.local\\bin\\nox.exe"
-	copy ".\\bin\\noxfmt.exe" "%USERPROFILE%\\.local\\bin\\noxfmt.exe"
-
-.PHONY: test-examples-w64
+.PHONY: test-examples
 test-examples-w64:
 	powershell -ExecutionPolicy Bypass -File .\examples\test-examples.ps1
 
