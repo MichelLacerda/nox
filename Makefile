@@ -5,6 +5,10 @@ all: test build-w64 build-fmt-w64
 build-w64:
 	go build -ldflags "-w -s" -o ./bin/nox.exe .\cmd\nox\main.go
 
+.PHONY: build-linux
+build-linux:
+	GOOS=linux GOARCH=amd64 go build -ldflags "-w -s" -o ./bin/nox ./cmd/nox/main.go
+
 .PHONY: test
 test:
 	go test -v ./...
@@ -26,6 +30,10 @@ stats:
 build-fmt-w64:
 	go build -ldflags "-w -s" -o ./bin/noxfmt.exe .\cmd\fmt\main.go
 
+.PHONY: build-fmt-linux
+build-fmt-linux:
+	GOOS=linux GOARCH=amd64 go build -ldflags "-w -s " -o ./bin/noxfmt ./cmd/fmt/main.go
+
 .PHONY: install-w64
 install-w64: build-w64 build-fmt-w64
 	mkdir "%USERPROFILE%\\.local\\bin" || exit 0
@@ -38,7 +46,4 @@ test-examples-w64:
 
 .PHONY: test-examples-linux
 test-examples-linux:
-	@find examples -type f -name "*.nox" | while read file; do \
-		echo "Executing script: $$(basename $$file)"; \
-		./nox "$$file"; \
-	done
+	sh ./examples/test-examples.sh
