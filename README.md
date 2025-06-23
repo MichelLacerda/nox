@@ -344,3 +344,35 @@ with open("README.md", "r") as f {
     print f.readline();
 }
 ```
+
+## Build/Install/Run
+
+### Windows
+
+```sh
+go env -w GOOS=windows
+make install-windows
+```
+
+### Linux
+
+```sh
+go env -w GOOS=linux
+make install-linux
+```
+
+### Run
+
+```sh
+make run
+```
+
+### Examples
+
+```sh
+make test-examples-windows
+```
+
+```sh
+make test-examples-windows
+```
