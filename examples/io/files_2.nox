@@ -1,0 +1,4 @@
+// Read and print the first line of a file
+with open("README.md", "r") as f {
+    print f.readline();
+} // f.close() is called automatically here

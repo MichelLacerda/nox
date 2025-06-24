@@ -1,4 +1,4 @@
-let file = open("test.bin", "wb+");
+let file = open("example_io_1.bin", "wb+");
 
 file.write_bytes("Hello, World!");
 file.close();

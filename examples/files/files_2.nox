@@ -1,4 +1,0 @@
-with open("README.md", "r") as f {
-    print f;
-    print f.readline();
-} // f.close() é chamado automaticamente aqui

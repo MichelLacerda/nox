@@ -1,0 +1,10 @@
+// Reading a file line by line using a for loop
+with open("README.md", "r") as f {
+    for {
+        let line = f.readline();
+        if (line == nil) { // EOF
+            break;
+        }
+        print line;
+    }
+} // f.close() is called automatically here

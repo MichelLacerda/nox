@@ -1,5 +1,7 @@
-scripts/
-bkp/
 .vscode/
-*.exe
-*.txt
+.idea/
+.DS_Store
+.env/
+.internal/
+example_io_0.txt
+example_io_1.bin

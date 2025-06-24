@@ -7,6 +7,5 @@ class Foo {
 }
 
 let foo = Foo("Hello", "World");
-// print foo.init();
 print foo.a;
 print foo.b;

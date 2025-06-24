@@ -1,4 +1,4 @@
-let file = open("test.txt", "w");
+let file = open("example_io_0.txt", "w");
 
 file.write("Hello, World!");
 file.close();

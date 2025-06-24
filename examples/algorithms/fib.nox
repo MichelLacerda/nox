@@ -6,11 +6,3 @@ func fib(n) {
 for i in range(20) {
     print fib(i);
 }
-
-let c = {
-    "key": "value",
-    "anotherKey": "anotherValue",
-    "nested": {
-        "innerKey": "innerValue"
-    }
-};
