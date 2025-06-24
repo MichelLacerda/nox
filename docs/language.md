@@ -266,6 +266,67 @@ Chaining and nesting are allowed. Combine with `?` for safe evaluation.
 
 ---
 
+# 📁 File I/O
+
+Nox supports basic file operations through the builtin function `open(path, mode)`, which returns a file object. The recommended way to handle files is by using the `with` statement, which ensures proper closing of the file, even in case of runtime errors.
+
+## 🔓 Opening a file
+
+```nox
+let file = open("example.txt", "w")
+file.write("Hello, Nox!")
+file.close()
+```
+
+## ✅ Recommended: Using `with` statement
+
+```nox
+with open("example.txt", "w") as file {
+    file.write("Hello, Nox!\n")
+    file.write("Second line.")
+}
+```
+
+## 📖 Reading content
+
+```nox
+with open("example.txt", "r") as file {
+    let content = file.read()
+    print(content)
+}
+```
+
+## ➕ Appending to a file
+
+```nox
+with open("example.txt", "a") as file {
+    file.write("\nAppended line.")
+}
+```
+
+# 🔧 File Modes
+
+| Mode | Description               |
+|------|---------------------------|
+| "r"  | Read (default)            |
+| "w"  | Write (truncates file)    |
+| "a"  | Append                    |
+| "r+" | Read/Write                |
+| "w+" | Write (truncates) + Read  |
+| "a+" | Append + Read             |
+
+# 🧰 File Methods
+
+| Method         | Description                      |
+|----------------|----------------------------------|
+| `read()`       | Returns full file contents       |
+| `readline()`   | Returns a single line            |
+| `write(text)`  | Writes a string to the file      |
+| `seek(offset)` | Moves file pointer to position   |
+| `close()`      | Manually closes the file         |
+
+---
+
 ## ✅ Summary
 
 Nox is designed to be concise, expressive, and safe. Use this guide as a reference and explore the examples for deeper understanding.
