@@ -7,6 +7,7 @@ import (
 	"math/rand/v2"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -938,6 +939,319 @@ func RegisterOsBuiltins(i *Interpreter) *MapInstance {
 	})
 }
 
+func RegisterPathBuiltins(i *Interpreter) *MapInstance {
+	return NewMapInstance(map[string]any{
+		"exists": &BuiltinFunction{
+			ArityValue: 1,
+			CallFunc: func(i *Interpreter, args []any) any {
+				if len(args) != 1 {
+					i.Runtime.ReportRuntimeError(nil, "path.exists(path) expects 1 argument.")
+					return nil
+				}
+				path, ok := args[0].(string)
+				if !ok {
+					i.Runtime.ReportRuntimeError(nil, "path.exists(path) expects a string argument.")
+					return nil
+				}
+				return util.PathExists(path)
+			},
+		},
+		"abs": &BuiltinFunction{
+			ArityValue: 1,
+			CallFunc: func(i *Interpreter, args []any) any {
+				if len(args) != 1 {
+					i.Runtime.ReportRuntimeError(nil, "path.abs(path) expects 1 argument.")
+					return nil
+				}
+				path, ok := args[0].(string)
+				if !ok {
+					i.Runtime.ReportRuntimeError(nil, "path.abs(path) expects a string argument.")
+					return nil
+				}
+				absPath, err := filepath.Abs(path)
+				if err != nil {
+					i.Runtime.ReportRuntimeError(nil, fmt.Sprintf("path.abs failed: %v", err))
+					return nil
+				}
+				return absPath
+			},
+		},
+		"join": &BuiltinFunction{
+			ArityValue: -1,
+			CallFunc: func(i *Interpreter, args []any) any {
+				if len(args) < 1 {
+					i.Runtime.ReportRuntimeError(nil, "path.join(...) expects at least 1 argument.")
+					return nil
+				}
+				parts := make([]string, 0, len(args))
+				for _, arg := range args {
+					part, ok := arg.(string)
+					if !ok {
+						i.Runtime.ReportRuntimeError(nil, "path.join(...) expects all arguments to be strings.")
+						return nil
+					}
+					parts = append(parts, part)
+				}
+				joinedPath := filepath.Join(parts...)
+				return joinedPath
+			},
+		},
+		"split": &BuiltinFunction{
+			ArityValue: 1,
+			CallFunc: func(i *Interpreter, args []any) any {
+				if len(args) != 1 {
+					i.Runtime.ReportRuntimeError(nil, "path.split(path) expects 1 argument.")
+					return nil
+				}
+				path, ok := args[0].(string)
+				if !ok {
+					i.Runtime.ReportRuntimeError(nil, "path.split(path) expects a string argument.")
+					return nil
+				}
+				dir, file := filepath.Split(path)
+				return NewDictInstance(map[string]any{
+					"directory": dir,
+					"file":      file,
+				})
+			},
+		},
+		"basename": &BuiltinFunction{
+			ArityValue: 1,
+			CallFunc: func(i *Interpreter, args []any) any {
+				if len(args) != 1 {
+					i.Runtime.ReportRuntimeError(nil, "path.basename(path) expects 1 argument.")
+					return nil
+				}
+				path, ok := args[0].(string)
+				if !ok {
+					i.Runtime.ReportRuntimeError(nil, "path.basename(path) expects a string argument.")
+					return nil
+				}
+				return filepath.Base(path)
+			},
+		},
+		"dirname": &BuiltinFunction{
+			ArityValue: 1,
+			CallFunc: func(i *Interpreter, args []any) any {
+				if len(args) != 1 {
+					i.Runtime.ReportRuntimeError(nil, "path.dirname(path) expects 1 argument.")
+					return nil
+				}
+				path, ok := args[0].(string)
+				if !ok {
+					i.Runtime.ReportRuntimeError(nil, "path.dirname(path) expects a string argument.")
+					return nil
+				}
+				return filepath.Dir(path)
+			},
+		},
+		"extname": &BuiltinFunction{
+			ArityValue: 1,
+			CallFunc: func(i *Interpreter, args []any) any {
+				if len(args) != 1 {
+					i.Runtime.ReportRuntimeError(nil, "path.extname(path) expects 1 argument.")
+					return nil
+				}
+				path, ok := args[0].(string)
+				if !ok {
+					i.Runtime.ReportRuntimeError(nil, "path.extname(path) expects a string argument.")
+					return nil
+				}
+				ext := filepath.Ext(path)
+				if ext == "" {
+					i.Runtime.ReportRuntimeError(nil, "path.extname(path) expects a file with an extension.")
+					return nil
+				}
+				return ext
+			},
+		},
+		"relpath": &BuiltinFunction{
+			ArityValue: 2,
+			CallFunc: func(i *Interpreter, args []any) any {
+				if len(args) != 2 {
+					i.Runtime.ReportRuntimeError(nil, "path.relpath(path, start) expects 2 arguments.")
+					return nil
+				}
+				path, ok1 := args[0].(string)
+				start, ok2 := args[1].(string)
+				if !ok1 || !ok2 {
+					i.Runtime.ReportRuntimeError(nil, "path.relpath(path, start) expects both arguments to be strings.")
+					return nil
+				}
+				relPath, err := filepath.Rel(start, path)
+				if err != nil {
+					i.Runtime.ReportRuntimeError(nil, fmt.Sprintf("path.relpath failed: %v", err))
+					return nil
+				}
+				return relPath
+			},
+		},
+		"normalize": &BuiltinFunction{
+			ArityValue: 1,
+			CallFunc: func(i *Interpreter, args []any) any {
+				if len(args) != 1 {
+					i.Runtime.ReportRuntimeError(nil, "path.normalize(path) expects 1 argument.")
+					return nil
+				}
+				path, ok := args[0].(string)
+				if !ok {
+					i.Runtime.ReportRuntimeError(nil, "path.normalize(path) expects a string argument.")
+					return nil
+				}
+				// Normaliza o caminho, removendo barras extras e resolvendo "." e ".."
+				normalizedPath := filepath.Clean(path)
+				if normalizedPath == "." {
+					// Se o caminho normalizado for apenas ".", retorna o diretório atual
+					cwd, err := os.Getwd()
+					if err != nil {
+						i.Runtime.ReportRuntimeError(nil, fmt.Sprintf("path.normalize failed: %v", err))
+						return nil
+					}
+					return cwd
+				}
+				return normalizedPath
+			},
+		},
+		"splitext": &BuiltinFunction{
+			ArityValue: 1,
+			CallFunc: func(i *Interpreter, args []any) any {
+				if len(args) != 1 {
+					i.Runtime.ReportRuntimeError(nil, "path.splitext(path) expects 1 argument.")
+
+					return nil
+				}
+				path, ok := args[0].(string)
+				if !ok {
+					i.Runtime.ReportRuntimeError(nil, "path.splitext(path) expects a string argument.")
+					return nil
+				}
+				base := filepath.Base(path)
+				ext := filepath.Ext(base)
+				name := base[:len(base)-len(ext)]
+				if len(name) == 0 {
+					name = "untitled"
+				}
+				return NewDictInstance(map[string]any{
+					"name": name,
+					"ext":  ext,
+				})
+			},
+		},
+		"size": &BuiltinFunction{
+			ArityValue: 1,
+			CallFunc: func(i *Interpreter, args []any) any {
+				if len(args) != 1 {
+					i.Runtime.ReportRuntimeError(nil, "path.size(path) expects 1 argument.")
+					return nil
+				}
+				path, ok := args[0].(string)
+				if !ok {
+					i.Runtime.ReportRuntimeError(nil, "path.size(path) expects a string argument.")
+					return nil
+				}
+				info, err := os.Stat(path)
+				if err != nil {
+					i.Runtime.ReportRuntimeError(nil, fmt.Sprintf("path.size failed: %v", err))
+					return nil
+				}
+				if info.IsDir() {
+					return int64(0)
+				}
+				return info.Size()
+			},
+		},
+		"time": &BuiltinFunction{
+			ArityValue: 1,
+			CallFunc: func(i *Interpreter, args []any) any {
+				if len(args) != 1 {
+					i.Runtime.ReportRuntimeError(nil, "path.time(path) expects 1 argument.")
+					return nil
+				}
+				path, ok := args[0].(string)
+				if !ok {
+					i.Runtime.ReportRuntimeError(nil, "path.time(path) expects a string argument.")
+					return nil
+				}
+				info, err := os.Stat(path)
+				if err != nil {
+					i.Runtime.ReportRuntimeError(nil, fmt.Sprintf("path.time failed: %v", err))
+					return nil
+				}
+				return info.ModTime()
+			},
+		},
+		"isdir": &BuiltinFunction{
+			ArityValue: 1,
+			CallFunc: func(i *Interpreter, args []any) any {
+				if len(args) != 1 {
+					i.Runtime.ReportRuntimeError(nil, "path.isdir(path) expects 1 argument.")
+					return nil
+				}
+				path, ok := args[0].(string)
+				if !ok {
+					i.Runtime.ReportRuntimeError(nil, "path.isdir(path) expects a string argument.")
+					return nil
+				}
+				info, err := os.Stat(path)
+				if err != nil {
+					if os.IsNotExist(err) {
+						return false // Se o caminho não existir, não é um diretório
+					}
+					i.Runtime.ReportRuntimeError(nil, fmt.Sprintf("path.isdir failed: %v", err))
+					return nil
+				}
+				return info.IsDir()
+			},
+		},
+		"isfile": &BuiltinFunction{
+			ArityValue: 1,
+			CallFunc: func(i *Interpreter, args []any) any {
+				if len(args) != 1 {
+					i.Runtime.ReportRuntimeError(nil, "path.isfile(path) expects 1 argument.")
+					return nil
+				}
+				path, ok := args[0].(string)
+				if !ok {
+					i.Runtime.ReportRuntimeError(nil, "path.isfile(path) expects a string argument.")
+					return nil
+				}
+				info, err := os.Stat(path)
+				if err != nil {
+					if os.IsNotExist(err) {
+						return false // Se o caminho não existir, não é um arquivo
+					}
+					i.Runtime.ReportRuntimeError(nil, fmt.Sprintf("path.isfile failed: %v", err))
+					return nil
+				}
+				return !info.IsDir()
+			},
+		},
+		"islink": &BuiltinFunction{
+			ArityValue: 1,
+			CallFunc: func(i *Interpreter, args []any) any {
+				if len(args) != 1 {
+					i.Runtime.ReportRuntimeError(nil, "path.islink(path) expects 1 argument.")
+					return nil
+				}
+				path, ok := args[0].(string)
+				if !ok {
+					i.Runtime.ReportRuntimeError(nil, "path.islink(path) expects a string argument.")
+					return nil
+				}
+				info, err := os.Lstat(path)
+				if err != nil {
+					if os.IsNotExist(err) {
+						return false // Se o caminho não existir, não é um link simbólico
+					}
+					i.Runtime.ReportRuntimeError(nil, fmt.Sprintf("path.islink failed: %v", err))
+					return nil
+				}
+				return info.Mode()&os.ModeSymlink != 0
+			},
+		},
+	})
+}
+
 func RegisterBuiltins(i *Interpreter) {
 	i.globals.Define("clock", RegisterClockBuiltin(i))
 	i.globals.Define("len", RegisterLenBuiltin(i))
@@ -949,6 +1263,7 @@ func RegisterBuiltins(i *Interpreter) {
 	i.globals.Define("type", RegisterTypeBuiltins(i))
 	i.globals.Define("random", RegisterRandomBuiltins(i))
 	i.globals.Define("os", RegisterOsBuiltins(i))
+	i.globals.Define("path", RegisterPathBuiltins(i))
 	RegisterMathConstants(i)
 }
 

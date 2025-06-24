@@ -5,6 +5,7 @@ import (
 	"os"
 )
 
+// ParseFileMode converts a string representation of a file mode to an os file mode.
 func ParseFileMode(mode string) (int, error) {
 	switch mode {
 	case "r":
@@ -34,4 +35,13 @@ func ParseFileMode(mode string) (int, error) {
 	default:
 		return 0, fmt.Errorf("unsupported file mode: %s", mode)
 	}
+}
+
+// PathExists checks if a file or directory exists at the given path.
+func PathExists(path string) bool {
+	_, err := os.Stat(path)
+	if os.IsNotExist(err) {
+		return false
+	}
+	return err == nil
 }
