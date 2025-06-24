@@ -104,4 +104,222 @@ Globally available:
 
 ---
 
+## `random`
+
+### `random.int(min, max)`
+Returns a random integer between `min` and `max` (inclusive).
+
+```nox
+let n = random.int(1, 10)
+print n  # e.g. 7
+```
+
+### `random.float()`
+Returns a random floating-point number between `0.0` and `1.0`.
+
+```nox
+let f = random.float()
+print f  # e.g. 0.581
+```
+
+---
+
+## `os`
+
+### `os.listdir(path, only_dirs=false)`
+Returns a list of files and directories in `path`. If `only_dirs` is `true`, returns only directories.
+
+```nox
+print os.listdir(".")
+```
+
+### `os.chmod(path, mod)`
+Changes the file permissions to mode `mod`.
+
+```nox
+os.chmod("script.nox", 0o755)
+```
+
+### `os.chdir(path)`
+Changes the current working directory to `path`.
+
+```nox
+os.chdir("/home/user")
+```
+
+### `os.cwd()`
+Returns the current working directory.
+
+```nox
+print os.cwd()
+```
+
+### `os.getenv(key)`
+Returns the value of an environment variable.
+
+```nox
+print os.getenv("HOME")
+```
+
+### `os.setenv(key, value)`
+Sets an environment variable.
+
+```nox
+os.setenv("MODE", "dev")
+```
+
+### `os.mkdir(path)`
+Creates a new directory.
+
+```nox
+os.mkdir("new_folder")
+```
+
+### `os.rmdir(path)`
+Removes an empty directory.
+
+```nox
+os.rmdir("new_folder")
+```
+
+### `os.info(path)`
+Returns information about the file: size, type, permissions, etc.
+
+```nox
+print os.info("file.txt")
+```
+
+### `os.walk(path)`
+Recursively walks through directories from `path`. Returns a list of tuples `(dir, subdirs, files)`.
+
+```nox
+for (dir, subdirs, files) in os.walk(".") {
+    print dir
+}
+```
+
+### `os.exec(command)`
+Executes a system command and returns its output.
+
+```nox
+print os.exec("echo Hello")
+```
+
+### `os.exit(code=0)`
+Terminates the script with the given exit code.
+
+```nox
+os.exit(1)
+```
+
+---
+
+## `path`
+
+### `path.exists(path)`
+Checks if the path exists.
+
+```nox
+print path.exists("file.txt")
+```
+
+### `path.abs(path)`
+Returns the absolute path.
+
+```nox
+print path.abs("./file.txt")
+```
+
+### `path.join(path, ...)`
+Joins multiple path segments.
+
+```nox
+print path.join("a", "b", "c.txt")
+```
+
+### `path.split(path)`
+Splits the path into `(dir, base)`.
+
+```nox
+print path.split("a/b/c.txt")  # ("a/b", "c.txt")
+```
+
+### `path.splitext(path)`
+Splits the path into `(base, ext)`.
+
+```nox
+print path.splitext("a/b/c.txt")  # ("a/b/c", ".txt")
+```
+
+### `path.basename(path)`
+Returns the file name.
+
+```nox
+print path.basename("a/b/c.txt")  # "c.txt"
+```
+
+### `path.dirname(path)`
+Returns the parent directory.
+
+```nox
+print path.dirname("a/b/c.txt")  # "a/b"
+```
+
+### `path.extname(path)`
+Returns the file extension.
+
+```nox
+print path.extname("a/b/c.txt")  # ".txt"
+```
+
+### `path.relpath(path, start)`
+Returns the relative path from the current directory.
+
+```nox
+print path.relpath("/usr/local/bin", "usr")
+```
+
+### `path.normalize(path)`
+Normalizes slashes, `..`, etc.
+
+```nox
+print path.normalize("a//b/../c")
+```
+
+### `path.size(path)`
+Returns the file size (in bytes).
+
+```nox
+print path.size("file.txt")
+```
+
+### `path.time(path)`
+Returns creation, modification, and access timestamps.
+
+```nox
+print path.time("file.txt")
+```
+
+### `path.isdir(path)`
+Returns `true` if the path is a directory.
+
+```nox
+print path.isdir("my_folder")
+```
+
+### `path.isfile(path)`
+Returns `true` if the path is a file.
+
+```nox
+print path.isfile("file.txt")
+```
+
+### `path.islink(path)`
+Returns `true` if the path is a symbolic link.
+
+```nox
+print path.islink("shortcut")
+```
+---
+
 These built-ins are registered automatically when the interpreter starts.
