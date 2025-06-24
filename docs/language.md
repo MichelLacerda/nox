@@ -266,11 +266,11 @@ Chaining and nesting are allowed. Combine with `?` for safe evaluation.
 
 ---
 
-# 📁 File I/O
+## 📁 File I/O
 
 Nox supports basic file operations through the builtin function `open(path, mode)`, which returns a file object. The recommended way to handle files is by using the `with` statement, which ensures proper closing of the file, even in case of runtime errors.
 
-## 🔓 Opening a file
+### 🔓 Opening a file
 
 ```nox
 let file = open("example.txt", "w")
@@ -278,7 +278,7 @@ file.write("Hello, Nox!")
 file.close()
 ```
 
-## ✅ Recommended: Using `with` statement
+### ✅ Recommended: Using `with` statement
 
 ```nox
 with open("example.txt", "w") as file {
@@ -287,7 +287,7 @@ with open("example.txt", "w") as file {
 }
 ```
 
-## 📖 Reading content
+### 📖 Reading content
 
 ```nox
 with open("example.txt", "r") as file {
@@ -296,7 +296,7 @@ with open("example.txt", "r") as file {
 }
 ```
 
-## ➕ Appending to a file
+### ➕ Appending to a file
 
 ```nox
 with open("example.txt", "a") as file {
@@ -304,7 +304,7 @@ with open("example.txt", "a") as file {
 }
 ```
 
-# 🔧 File Modes
+### 🔧 File Modes
 
 | Mode | Description               |
 |------|---------------------------|
@@ -315,7 +315,7 @@ with open("example.txt", "a") as file {
 | "w+" | Write (truncates) + Read  |
 | "a+" | Append + Read             |
 
-# 🧰 File Methods
+### 🧰 File Methods
 
 | Method         | Description                      |
 |----------------|----------------------------------|
