@@ -269,6 +269,54 @@ func (i *Interpreter) VisitForInStmt(stmt *ast.ForInStmt) any {
 			}()
 		}
 
+	case *StringInstance: // string
+		for index, char := range coll.Value {
+			env := NewEnvironment(i.Runtime, i.environment)
+			if stmt.IndexVar != nil {
+				env.Define(stmt.IndexVar.Lexeme, float64(index))
+			}
+			env.Define(stmt.ValueVar.Lexeme, string(char))
+			func() {
+				defer func() {
+					if r := recover(); r != nil {
+						switch r.(type) {
+						case signal.BreakSignal:
+							panic(r) // repassa pro loop pai
+						case signal.ContinueSignal:
+							// ignora, continua o próximo item
+						default:
+							panic(r) // repassa qualquer outro erro
+						}
+					}
+				}()
+				i.ExecuteBlock([]ast.Stmt{stmt.Body}, env)
+			}()
+		}
+
+	case string: // string
+		for index, char := range coll {
+			env := NewEnvironment(i.Runtime, i.environment)
+			if stmt.IndexVar != nil {
+				env.Define(stmt.IndexVar.Lexeme, float64(index))
+			}
+			env.Define(stmt.ValueVar.Lexeme, string(char))
+			func() {
+				defer func() {
+					if r := recover(); r != nil {
+						switch r.(type) {
+						case signal.BreakSignal:
+							panic(r)
+						case signal.ContinueSignal:
+							// ignora, continua o próximo item
+						default:
+							panic(r) // repassa qualquer outro erro
+						}
+					}
+				}()
+				i.ExecuteBlock([]ast.Stmt{stmt.Body}, env)
+			}()
+		}
+
 	case bool: // for { ... } → loop infinito
 		if coll {
 			for {
