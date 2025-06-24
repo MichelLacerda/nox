@@ -1,0 +1,102 @@
+(* EOF is not a Token *)
+program     ::= statement* EOF ;
+
+statement   ::= block
+              | exprStmt
+              | forStmt
+              | ifStmt
+              | printStmt
+              | returnStmt
+              | importStmt
+              | withStmt
+              | breakStmt
+              | continueStmt ;
+
+block       ::= "{" declaration* "}" ;
+
+declaration ::= exportDecl
+              | funcDecl
+              | varDecl
+              | classDecl
+              | statement ;
+
+exportDecl  ::= "export" (funcDecl | varDecl | classDecl) ;
+
+funcDecl    ::= "func" function ;
+
+function    ::= IDENTIFIER "(" parameters? ")" block ;
+
+parameters  ::= IDENTIFIER ( "," IDENTIFIER )* ;
+
+classDecl   ::= "class" IDENTIFIER ( "<" IDENTIFIER )? 
+              "{" function* "}" ;
+
+varDecl     ::= "let" IDENTIFIER ( "=" expression )? ;
+
+exprStmt    ::= expression ;
+
+forStmt     ::= "for" forSignature ;
+
+forSignature ::= block
+               | IDENTIFIER "in" expression block
+               | IDENTIFIER "," IDENTIFIER "in" expression block ;
+
+ifStmt      ::= "if" expression statement ( "else" statement )? ;
+
+printStmt   ::= "print" expression ;
+
+returnStmt  ::= "return" ( expression )? ;
+
+importStmt  ::= "import" STRING ( "as" IDENTIFIER )? ;
+
+withStmt    ::= "with" expression "as" IDENTIFIER block ;
+
+breakStmt   ::= "break" ( ";" )? ;
+
+continueStmt ::= "continue" ( ";" )? ;
+
+expression  ::= assignment ;
+
+assignment  ::= ( call "." )? IDENTIFIER "=" assignment 
+              | logic_or ;
+
+logic_or    ::= logic_and ( "or" logic_and )* ;
+
+logic_and   ::= equality ( "and" equality )* ;
+
+equality    ::= comparison ( ( "!=" | "==" ) comparison )* ;
+
+comparison  ::= term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
+
+term        ::= factor ( ( "-" | "+" ) factor )* ;
+
+factor      ::= power ( ( "/" | "*" | "%" ) power )* ;
+
+power       ::= unary ( "**" unary )* ;
+
+unary       ::= ( "!" | "-" | "?" ) unary 
+              | call 
+              | primary ;
+
+call        ::= primary ( "(" arguments? ")" 
+                        | "." IDENTIFIER 
+                        | "[" expression "]" )* ;
+
+arguments   ::= expression ( "," expression )* ;
+
+primary     ::= NUMBER
+              | STRING
+              | "true"
+              | "false"
+              | "nil"
+              | "(" expression ")"
+              | "self"
+              | "super" "." IDENTIFIER 
+              | list
+              | dict ;
+
+list        ::= "[" ( expression ( "," expression )* ","? )? "]" ;
+
+dict        ::= "{" ( dictEntry ( "," dictEntry )* ","? )? "}" ;
+
+dictEntry   ::= STRING ":" expression ;

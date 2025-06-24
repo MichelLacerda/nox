@@ -1,0 +1,15 @@
+export func square(x) {
+    return x * x;
+}
+
+func circle_area(r) {
+    return PI * square(r);
+}
+
+export class A {
+    rerp() {
+        print "<A>";
+    }
+}
+
+export let cPI = 3.14159

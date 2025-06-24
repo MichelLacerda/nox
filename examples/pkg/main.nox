@@ -1,0 +1,11 @@
+import "math/utils" as m;
+
+print "PI is: ", m.cPI;
+print "Area of circle with radius 5: ", ?m.circle_area(5);
+print "Square of 4: ", m.square(4);
+print "Square of 10: ", m.square(10);
+
+// PI is: 3.14159
+// Area of circle with radius 5: <nil>
+// Square of 4: 16
+// Square of 10: 100

@@ -1,0 +1,70 @@
+
+class Vector {
+    init(x, y) {
+        self.x = x;
+        self.y = y;
+    }
+
+    repr() {
+        return fmt("Vector({}, {})", self.x, self.y)
+    }
+
+    add(other) {
+        return Vector(self.x + other.x, self.y + other.y)
+    }
+
+    subtract(other) {
+        return Vector(self.x - other.x, self.y - other.y)
+    }
+
+    multiply(scalar) {
+        return Vector(self.x * scalar, self.y * scalar)
+    }
+
+    divide(scalar) {
+        return Vector(self.x / scalar, self.y / scalar)
+    }
+
+    length() {
+        return math.sqrt(self.x * self.x + self.y * self.y)
+    }
+
+    normalize() {
+        let vlen = self.length();
+        return Vector(self.x / vlen, self.y / vlen)
+    }
+}
+
+let pos = Vector(3, 4)
+
+print pos
+print "Position vector: ", pos.repr()
+print "Length of position vector: ", pos.length()
+print "Normalized position vector: ", pos.normalize().repr()
+
+
+let v1 = Vector(3, 4)
+let v2 = Vector(1, 2)
+
+print "Vector v1: ", v1.repr()
+print "Vector v2: ", v2.repr()
+
+let v3 = v1.add(v2)
+print "v1 + v2: ", v3.repr()
+
+let v4 = v1.subtract(v2)
+print "v1 - v2: ", v4.repr()
+
+let v5 = v1.multiply(2)
+print "v1 * 2: ", v5.repr()
+
+let v6 = v1.divide(2)
+print "v1 / 2: ", v6.repr()
+let v7 = v1.normalize()
+
+print "v1 normalized: ", v7.repr()
+let v8 = ?v1.divide(0) // This will throw an error
+print "v1 / 0: ", ?v8.repr() // This line will not execute due to the error
+print "Vector v1 length: ", v1.length()
+print "Vector v1 normalized: ", v1.normalize().repr()
+
