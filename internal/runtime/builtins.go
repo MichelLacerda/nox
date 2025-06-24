@@ -4,7 +4,9 @@ import (
 	"bufio"
 	"fmt"
 	"math"
+	"math/rand/v2"
 	"os"
+	"os/exec"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -604,6 +606,338 @@ func RegisterMathConstants(i *Interpreter) {
 	i.globals.Define("log10E", 1/2.302585)
 }
 
+func RegisterRandomBuiltins(i *Interpreter) *MapInstance {
+	return NewMapInstance(map[string]any{
+		"float": &BuiltinFunction{
+			ArityValue: 0,
+			CallFunc: func(i *Interpreter, args []any) any {
+				if len(args) != 0 {
+					i.Runtime.ReportRuntimeError(nil, "math.random() expects no arguments.")
+					return nil
+				}
+				return rand.Float64()
+			},
+		},
+		"int": &BuiltinFunction{
+			ArityValue: 2,
+			CallFunc: func(i *Interpreter, args []any) any {
+				if len(args) != 2 {
+					i.Runtime.ReportRuntimeError(nil, "math.irand(min, max) expects 2 arguments.")
+					return nil
+				}
+				min, ok1 := args[0].(float64)
+				max, ok2 := args[1].(float64)
+				if !ok1 || !ok2 {
+					i.Runtime.ReportRuntimeError(nil, "math.irand(min, max) expects two numbers.")
+					return nil
+				}
+				if min >= max {
+					i.Runtime.ReportRuntimeError(nil, "math.irand(min, max) expects min < max.")
+					return nil
+				}
+				return float64(rand.IntN(int(max-min))) + min
+			},
+		},
+	})
+}
+
+func RegisterOsBuiltins(i *Interpreter) *MapInstance {
+	return NewMapInstance(map[string]any{
+		"exit": &BuiltinFunction{
+			ArityValue: 1,
+			CallFunc: func(i *Interpreter, args []any) any {
+				if len(args) != 1 {
+					i.Runtime.ReportRuntimeError(nil, "os.exit(code) expects 1 argument.")
+					return nil
+				}
+				code, ok := args[0].(float64)
+				if !ok {
+					i.Runtime.ReportRuntimeError(nil, "os.exit(code) expects a number argument.")
+					return nil
+				}
+				if code < 0 || code > 255 {
+					i.Runtime.ReportRuntimeError(nil, "os.exit(code) expects a code between 0 and 255.")
+					return nil
+				}
+				os.Exit(int(code))
+				return nil // nunca alcançado, mas necessário para satisfazer a assinatura
+			},
+		},
+		"exec": &BuiltinFunction{
+			ArityValue: 1,
+			CallFunc: func(i *Interpreter, args []any) any {
+				if len(args) != 1 {
+					i.Runtime.ReportRuntimeError(nil, "os.exec(command) expects 1 argument.")
+					return nil
+				}
+				command, ok := args[0].(string)
+				if !ok {
+					i.Runtime.ReportRuntimeError(nil, "os.exec(command) expects a string argument.")
+					return nil
+				}
+				var cmd *exec.Cmd
+				if os.PathSeparator == '\\' {
+					// Provavelmente Windows
+					cmd = exec.Command("cmd", "/C", command)
+				} else {
+					// Unix-like
+					cmd = exec.Command("sh", "-c", command)
+				}
+				output, err := cmd.CombinedOutput()
+				if err != nil {
+					i.Runtime.ReportRuntimeError(nil, fmt.Sprintf("os.exec failed: %v", err))
+					return nil
+				}
+				return string(output)
+			},
+		},
+		"getenv": &BuiltinFunction{
+			ArityValue: 1,
+			CallFunc: func(i *Interpreter, args []any) any {
+				if len(args) != 1 {
+					i.Runtime.ReportRuntimeError(nil, "os.getenv(name) expects 1 argument.")
+					return nil
+				}
+				name, ok := args[0].(string)
+				if !ok {
+					i.Runtime.ReportRuntimeError(nil, "os.getenv(name) expects a string argument.")
+					return nil
+				}
+				value, exists := os.LookupEnv(name)
+				if !exists {
+					i.Runtime.ReportRuntimeError(nil, fmt.Sprintf("Environment variable '%s' not found.", name))
+					return nil
+				}
+				return value
+			},
+		},
+		"setenv": &BuiltinFunction{
+			ArityValue: 2,
+			CallFunc: func(i *Interpreter, args []any) any {
+				if len(args) != 2 {
+					i.Runtime.ReportRuntimeError(nil, "os.setenv(name, value) expects 2 arguments.")
+					return nil
+				}
+				name, ok1 := args[0].(string)
+				value, ok2 := args[1].(string)
+				if !ok1 || !ok2 {
+					i.Runtime.ReportRuntimeError(nil, "os.setenv(name, value) expects both arguments to be strings.")
+					return nil
+				}
+				err := os.Setenv(name, value)
+				if err != nil {
+					i.Runtime.ReportRuntimeError(nil, fmt.Sprintf("Failed to set environment variable '%s': %v", name, err))
+					return nil
+				}
+				return nil
+			},
+		},
+		"cwd": &BuiltinFunction{
+			ArityValue: 0,
+			CallFunc: func(i *Interpreter, args []any) any {
+				if len(args) != 0 {
+					i.Runtime.ReportRuntimeError(nil, "os.cwd() expects no arguments.")
+					return nil
+				}
+				cwd, err := os.Getwd()
+				if err != nil {
+					i.Runtime.ReportRuntimeError(nil, fmt.Sprintf("os.cwd() failed: %v", err))
+					return nil
+				}
+				return cwd
+			},
+		},
+		"listdir": &BuiltinFunction{
+			ArityValue: 2,
+			CallFunc: func(i *Interpreter, args []any) any {
+				if len(args) != 2 {
+					i.Runtime.ReportRuntimeError(nil, "os.listdir(path, only_dirs) expects 2 arguments.")
+					return nil
+				}
+				path, ok := args[0].(string)
+				if !ok {
+					i.Runtime.ReportRuntimeError(nil, "os.listdir(path) expects a string argument.")
+					return nil
+				}
+				onlyDirs, ok := args[1].(bool)
+				if !ok {
+					i.Runtime.ReportRuntimeError(nil, "os.listdir(path, only_dirs) expects a boolean argument.")
+					return nil
+				}
+				entries, err := os.ReadDir(path)
+				if err != nil {
+					i.Runtime.ReportRuntimeError(nil, fmt.Sprintf("os.listdir failed: %v", err))
+					return nil
+				}
+				var names []any
+				for _, entry := range entries {
+					if onlyDirs {
+						if entry.IsDir() {
+							names = append(names, entry.Name()+"/") // adiciona barra para diretórios
+						}
+					} else {
+						names = append(names, entry.Name())
+					}
+				}
+				return NewListInstance(names)
+			},
+		},
+		"chmod": &BuiltinFunction{
+			ArityValue: 2,
+			CallFunc: func(i *Interpreter, args []any) any {
+				if len(args) != 2 {
+					i.Runtime.ReportRuntimeError(nil, "os.chmod(path, mode) expects 2 arguments.")
+					return nil
+				}
+				path, ok1 := args[0].(string)
+				mode, ok2 := args[1].(float64)
+				if !ok1 || !ok2 {
+					i.Runtime.ReportRuntimeError(nil, "os.chmod(path, mode) expects a string and a number.")
+					return nil
+				}
+				err := os.Chmod(path, os.FileMode(mode))
+				if err != nil {
+					i.Runtime.ReportRuntimeError(nil, fmt.Sprintf("os.chmod failed: %v", err))
+					return nil
+				}
+				return nil
+			},
+		},
+		"chdir": &BuiltinFunction{
+			ArityValue: 1,
+			CallFunc: func(i *Interpreter, args []any) any {
+				if len(args) != 1 {
+					i.Runtime.ReportRuntimeError(nil, "os.chdir(path) expects 1 argument.")
+					return nil
+				}
+				path, ok := args[0].(string)
+				if !ok {
+					i.Runtime.ReportRuntimeError(nil, "os.chdir(path) expects a string argument.")
+					return nil
+				}
+				err := os.Chdir(path)
+				if err != nil {
+					i.Runtime.ReportRuntimeError(nil, fmt.Sprintf("os.chdir failed: %v", err))
+					return nil
+				}
+				return nil
+			},
+		},
+		"mkdir": &BuiltinFunction{
+			ArityValue: 1,
+			CallFunc: func(i *Interpreter, args []any) any {
+				if len(args) != 1 {
+					i.Runtime.ReportRuntimeError(nil, "os.mkdir(path) expects 1 argument.")
+					return nil
+				}
+				path, ok := args[0].(string)
+				if !ok {
+					i.Runtime.ReportRuntimeError(nil, "os.mkdir(path) expects a string argument.")
+					return nil
+				}
+				err := os.Mkdir(path, 0755) // Permissões padrão 0755
+				if err != nil {
+					i.Runtime.ReportRuntimeError(nil, fmt.Sprintf("os.mkdir failed: %v", err))
+					return nil
+				}
+				return nil
+			},
+		},
+		"rmdir": &BuiltinFunction{
+			ArityValue: 1,
+			CallFunc: func(i *Interpreter, args []any) any {
+				if len(args) != 1 {
+					i.Runtime.ReportRuntimeError(nil, "os.rmdir(path) expects 1 argument.")
+					return nil
+				}
+				path, ok := args[0].(string)
+				if !ok {
+					i.Runtime.ReportRuntimeError(nil, "os.rmdir(path) expects a string argument.")
+					return nil
+				}
+				err := os.Remove(path)
+				if err != nil {
+					i.Runtime.ReportRuntimeError(nil, fmt.Sprintf("os.rmdir failed: %v", err))
+					return nil
+				}
+				return nil
+			},
+		},
+		"walk": &BuiltinFunction{
+			ArityValue: 1,
+			CallFunc: func(i *Interpreter, args []any) any {
+				if len(args) != 1 {
+					i.Runtime.ReportRuntimeError(nil, "os.walk(path) expects 1 argument.")
+					return nil
+				}
+				root, ok := args[0].(string)
+				if !ok {
+					i.Runtime.ReportRuntimeError(nil, "os.walk(path) expects a string argument.")
+					return nil
+				}
+
+				var walkDir func(string) []any
+				walkDir = func(path string) []any {
+					entries, err := os.ReadDir(path)
+					if err != nil {
+						// Retorna erro como string para não interromper toda a recursão
+						return []any{fmt.Sprintf("os.walk failed at %s: %v", path, err)}
+					}
+					var files []any
+					for _, entry := range entries {
+						fullPath := path + string(os.PathSeparator) + entry.Name()
+						if entry.IsDir() {
+							files = append(files, NewDictInstance(map[string]any{
+								"name":     entry.Name() + "/",
+								"type":     "directory",
+								"children": NewListInstance(walkDir(fullPath)),
+							}))
+						} else {
+							files = append(files, NewDictInstance(map[string]any{
+								"name": entry.Name(),
+								"type": "file",
+							}))
+						}
+					}
+					return files
+				}
+
+				return NewListInstance(walkDir(root))
+			},
+		},
+		"info": &BuiltinFunction{
+			ArityValue: 1,
+			CallFunc: func(i *Interpreter, args []any) any {
+				if len(args) != 1 {
+					i.Runtime.ReportRuntimeError(nil, "os.path(path) expects 1 argument.")
+					return nil
+				}
+				path, ok := args[0].(string)
+				if !ok {
+					i.Runtime.ReportRuntimeError(nil, "os.path(path) expects a string argument.")
+					return nil
+				}
+				// Retorna um dicionário com informações sobre o caminho
+				info, err := os.Stat(path)
+				if err != nil {
+					i.Runtime.ReportRuntimeError(nil, fmt.Sprintf("os.path failed: %v", err))
+					return nil
+				}
+				return NewDictInstance(map[string]any{
+					"name":        info.Name(),
+					"size":        float64(info.Size()),
+					"mode":        float64(info.Mode()),
+					"mod_time":    info.ModTime().Format(time.RFC3339),
+					"is_dir":      info.IsDir(),
+					"is_file":     !info.IsDir(),
+					"is_symlink":  info.Mode()&os.ModeSymlink != 0,
+					"permissions": fmt.Sprintf("%04o", info.Mode().Perm()),
+				})
+			},
+		},
+	})
+}
+
 func RegisterBuiltins(i *Interpreter) {
 	i.globals.Define("clock", RegisterClockBuiltin(i))
 	i.globals.Define("len", RegisterLenBuiltin(i))
@@ -613,6 +947,8 @@ func RegisterBuiltins(i *Interpreter) {
 	i.globals.Define("math", RegisterMathBuiltin(i))
 	i.globals.Define("fmt", RegisterFmtBuiltin(i))
 	i.globals.Define("type", RegisterTypeBuiltins(i))
+	i.globals.Define("random", RegisterRandomBuiltins(i))
+	i.globals.Define("os", RegisterOsBuiltins(i))
 	RegisterMathConstants(i)
 }
 
