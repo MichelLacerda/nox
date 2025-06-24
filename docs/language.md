@@ -64,7 +64,7 @@ for {
 ### For-in over a list
 
 ```nox
-let names = ["Douglas Adams", "Friedrich Nietzsche", "Pirulla"]
+let names = ["Alan Turing", "Pirulla", "Douglas Adams", "Friedrich Nietzsche"]
 for name in names {
     print name
 }
