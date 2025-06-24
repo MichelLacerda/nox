@@ -348,7 +348,7 @@ func (p *Parser) ReturnStatement() (ast.Stmt, error) {
 	keyword := p.Previous()
 
 	var value ast.Expr
-	if !p.Check(token.TokenType_SEMICOLON) {
+	if !p.Check(token.TokenType_SEMICOLON) && !p.Check(token.TokenType_RIGHT_BRACE) && !p.IsAtEnd() {
 		var err error
 		value, err = p.Expression()
 		if err != nil {
@@ -356,11 +356,7 @@ func (p *Parser) ReturnStatement() (ast.Stmt, error) {
 		}
 	}
 
-	// if _, err := p.Consume(token.TokenType_SEMICOLON, "Expect ';' after return value."); err != nil {
-	// 	return nil, err
-	// }
-
-	// Optional semicolon
+	// Optional semicolon — can be omitted before } or end of file
 	p.Match(token.TokenType_SEMICOLON)
 
 	return &ast.ReturnStmt{
