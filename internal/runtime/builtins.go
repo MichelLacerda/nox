@@ -1264,6 +1264,8 @@ func RegisterBuiltins(i *Interpreter) {
 	i.globals.Define("random", RegisterRandomBuiltins(i))
 	i.globals.Define("os", RegisterOsBuiltins(i))
 	i.globals.Define("path", RegisterPathBuiltins(i))
+	i.globals.Define("http", NewHttpModule())
+	i.globals.Define("json", NewJsonModule())
 	RegisterMathConstants(i)
 }
 

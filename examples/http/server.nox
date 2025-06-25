@@ -1,0 +1,71 @@
+class Info {
+    get(r, w) {
+        w.set_header("Content-Type", "application/json")
+        w.write(json.encode({
+            "name": "Nox",
+            "version": 1.0,
+            "features": ["fast", "portable", "fun"]
+        }))
+    }
+
+    post(r, w) {
+        print "Received POST request with body: " + r.body
+        w.write("POST ok")
+    }
+}
+
+let users = [
+{ "id": 1, "name": "Alice" },
+{ "id": 2, "name": "Bob" },
+{ "id": 3, "name": "Charlie" }
+]
+
+class User {
+    get(r, w) {
+        w.set_header("Content-Type", "application/json")
+        let id = ?r.query.id.to_number()
+        if id {
+            let user = ?self.find_user(id)
+            if not user {
+                w.set_status(404)
+                w.write(json.encode({
+                    "error": "User not found",
+                }))
+            } else {
+                w.write(json.encode(user))
+                return
+            }
+        } else {
+            w.set_status(200)
+            w.write(json.encode(users))
+            return
+        }
+    }
+
+    post(r, w) {
+        w.set_header("Content-Type", "application/json")
+        let user = json.decode(r.body)
+        let id = users.length() + 1
+
+        user.set("id", id)
+        users.append(user)
+
+        w.set_status(201)
+        w.write(json.encode({
+            "message": "User created successfully",
+            "user": user
+        }))
+    }
+
+    find_user(id) {
+        for user in users {
+            if user["id"] == id {
+                return user
+            }
+        }
+    }
+}
+
+http.route("/info", Info())
+http.route("/user", User())
+http.serve(8081)

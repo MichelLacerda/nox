@@ -23,6 +23,7 @@ func (i *Interpreter) VisitAssignExpr(expr *ast.AssignExpr) any {
 func (i *Interpreter) VisitCallExpr(expr *ast.CallExpr) any {
 	callee := i.evaluate(expr.Callee)
 
+	// fmt.Printf("Visiting CallExpr: callee=%T, arguments=%v\n", callee, expr.Arguments)
 	if callee == nil {
 		i.Runtime.ReportRuntimeError(expr.Parenthesis, "Attempt to call method on nil.")
 		return nil
@@ -97,6 +98,16 @@ func (i *Interpreter) VisitGetExpr(expr *ast.GetExpr) any {
 		i.Runtime.ReportRuntimeError(
 			expr.Name,
 			fmt.Sprintf("Undefined property '%s' for map object.", expr.Name.Lexeme),
+		)
+		return nil
+
+	case *WriterInstance:
+		if method := obj.Get(expr.Name); method != nil {
+			return method
+		}
+		i.Runtime.ReportRuntimeError(
+			expr.Name,
+			fmt.Sprintf("Undefined property '%s' for writer object.", expr.Name.Lexeme),
 		)
 		return nil
 

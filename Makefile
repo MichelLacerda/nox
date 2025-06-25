@@ -10,11 +10,11 @@ test:
 
 .PHONY: build
 build:
-	go build -ldflags "-w -s" -o ./bin/$(GOOS)/nox$(BIN_EXT) ./cmd/nox/main.go
+	go build -ldflags "-w -s" -o ./bin/$(GOOS)/nox$(BIN_EXT) -trimpath ./cmd/nox/main.go
 
 .PHONY: build-fmt
 build-fmt:
-	go build -ldflags '-w -s' -o ./bin/$(GOOS)/noxfmt$(BIN_EXT) ./cmd/fmt/main.go
+	go build -ldflags '-w -s' -o ./bin/$(GOOS)/noxfmt$(BIN_EXT) -trimpath ./cmd/fmt/main.go
 
 .PHONY: clean
 clean:

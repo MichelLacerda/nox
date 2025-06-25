@@ -1,6 +1,7 @@
 package runtime
 
 import (
+	"strconv"
 	"strings"
 	"unicode/utf8"
 )
@@ -155,6 +156,22 @@ func (s *StringInstance) GetMethod(name string) any {
 					return nil
 				}
 				return strings.TrimSpace(s.Value)
+			},
+		}
+	case "to_number":
+		return &BuiltinFunction{
+			ArityValue: 0,
+			CallFunc: func(interpreter *Interpreter, args []any) any {
+				if len(args) != 0 {
+					interpreter.Runtime.ReportRuntimeError(nil, "String.to_number expects 0 arguments.")
+					return nil
+				}
+				num, err := strconv.ParseFloat(s.Value, 64)
+				if err != nil {
+					interpreter.Runtime.ReportRuntimeError(nil, "String.to_number: "+err.Error())
+					return nil
+				}
+				return num
 			},
 		}
 	default:
