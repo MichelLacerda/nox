@@ -75,7 +75,11 @@ func (l *ListExpr) String() string {
 }
 
 func (i *IndexExpr) String() string {
-	return fmt.Sprintf("index %s[%s]", i.List.String(), i.Index.String())
+	return fmt.Sprintf("index %s[%s]", i.Object.String(), i.Index.String())
+}
+
+func (i *SetIndexExpr) String() string {
+	return fmt.Sprintf("index set %s[%s] = %s", i.Object.String(), i.Index.String(), i.Value.String())
 }
 
 func (i *DictExpr) String() string {

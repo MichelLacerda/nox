@@ -29,7 +29,7 @@ func (r *Resolver) VisitAssignExpr(expr *ast.AssignExpr) any {
 }
 
 func (r *Resolver) VisitIndexExpr(expr *ast.IndexExpr) any {
-	r.ResolveExpr(expr.List)
+	r.ResolveExpr(expr.Object)
 	r.ResolveExpr(expr.Index)
 	return nil
 }
@@ -75,6 +75,13 @@ func (r *Resolver) VisitGetExpr(expr *ast.GetExpr) any {
 
 func (r *Resolver) VisitSetExpr(expr *ast.SetExpr) any {
 	r.ResolveExpr(expr.Object)
+	r.ResolveExpr(expr.Value)
+	return nil
+}
+
+func (r *Resolver) VisitSetIndexExpr(expr *ast.SetIndexExpr) any {
+	r.ResolveExpr(expr.Object)
+	r.ResolveExpr(expr.Index)
 	r.ResolveExpr(expr.Value)
 	return nil
 }

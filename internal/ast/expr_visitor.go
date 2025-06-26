@@ -15,6 +15,7 @@ type ExprVisitor interface {
 	VisitSelfExpr(expr *SelfExpr) any
 	VisitListExpr(expr *ListExpr) any
 	VisitIndexExpr(expr *IndexExpr) any
+	VisitSetIndexExpr(expr *SetIndexExpr) any
 	VisitDictExpr(expr *DictExpr) any
 	VisitSafeExpr(expr *SafeExpr) any
 }
@@ -49,6 +50,10 @@ func (l *LogicalExpr) Accept(visitor ExprVisitor) any {
 
 func (s *SetExpr) Accept(visitor ExprVisitor) any {
 	return visitor.VisitSetExpr(s)
+}
+
+func (s *SetIndexExpr) Accept(visitor ExprVisitor) any {
+	return visitor.VisitSetIndexExpr(s)
 }
 
 func (s *SuperExpr) Accept(visitor ExprVisitor) any {

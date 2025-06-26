@@ -645,15 +645,22 @@ func (p *Parser) Assignment() (ast.Expr, error) {
 			return nil, err
 		}
 
-		if varExpr, ok := expr.(*ast.VariableExpr); ok {
+		switch assign := expr.(type) {
+		case *ast.VariableExpr:
 			return &ast.AssignExpr{
-				Name:  varExpr.Name,
+				Name:  assign.Name,
 				Value: value,
 			}, nil
-		} else if getExpr, ok := expr.(*ast.GetExpr); ok {
+		case *ast.GetExpr:
 			return &ast.SetExpr{
-				Object: getExpr.Object,
-				Name:   getExpr.Name,
+				Object: assign.Object,
+				Name:   assign.Name,
+				Value:  value,
+			}, nil
+		case *ast.IndexExpr:
+			return &ast.SetIndexExpr{
+				Object: assign.Object,
+				Index:  assign.Index,
 				Value:  value,
 			}, nil
 		}
@@ -866,7 +873,7 @@ func (p *Parser) Call() (ast.Expr, error) {
 				return nil, err
 			}
 			p.Consume(token.TokenType_RIGHT_BRACKET, "Expect ']' after index.")
-			expr = &ast.IndexExpr{List: expr, Index: index}
+			expr = &ast.IndexExpr{Object: expr, Index: index}
 		} else {
 			break
 		}

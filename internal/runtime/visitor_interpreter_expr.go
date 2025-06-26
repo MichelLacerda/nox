@@ -133,6 +133,59 @@ func (i *Interpreter) VisitSetExpr(expr *ast.SetExpr) any {
 	return nil
 }
 
+func (i *Interpreter) VisitSetIndexExpr(expr *ast.SetIndexExpr) any {
+	object := i.evaluate(expr.Object)
+	index := i.evaluate(expr.Index)
+	value := i.evaluate(expr.Value)
+	switch obj := object.(type) {
+	case []any:
+		intIndex, ok := index.(float64)
+		if !ok {
+			i.Runtime.ReportRuntimeError(&token.Token{Type: token.TokenType_Unknown, Lexeme: "[]"}, "List index must be a number.")
+			return nil
+		}
+		idx := int(intIndex)
+		if idx < 0 || idx >= len(obj) {
+			i.Runtime.ReportRuntimeError(&token.Token{Type: token.TokenType_Unknown, Lexeme: "[]"}, fmt.Sprintf("List index out of range: %d", idx))
+			return nil
+		}
+		obj[idx] = value
+		return value
+	case map[string]any: // dicionário
+		key, ok := index.(string)
+		if !ok {
+			i.Runtime.ReportRuntimeError(&token.Token{Type: token.TokenType_Unknown, Lexeme: "{}"}, "Dictionary keys must be strings.")
+			return nil
+		}
+		obj[key] = value
+		return value
+	case *ListInstance:
+		intIndex, ok := index.(float64)
+		if !ok {
+			i.Runtime.ReportRuntimeError(&token.Token{Type: token.TokenType_Unknown, Lexeme: "[]"}, "List index must be a number.")
+			return nil
+		}
+		idx := int(intIndex)
+		if idx < 0 || idx >= len(obj.Elements) {
+			i.Runtime.ReportRuntimeError(&token.Token{Type: token.TokenType_Unknown, Lexeme: "[]"}, fmt.Sprintf("List index out of range: %d", idx))
+			return nil
+		}
+		obj.Elements[idx] = value
+		return value
+	case *DictInstance:
+		key, ok := index.(string)
+		if !ok {
+			i.Runtime.ReportRuntimeError(&token.Token{Type: token.TokenType_Unknown, Lexeme: "{}"}, "Dictionary keys must be strings.")
+			return nil
+		}
+		obj.Entries[key] = value
+		return value
+	default:
+		i.Runtime.ReportRuntimeError(&token.Token{Type: token.TokenType_Unknown, Lexeme: "[]"}, "Only lists and dictionaries support indexing.")
+		return nil
+	}
+}
+
 func (i *Interpreter) VisitLogicalExpr(expr *ast.LogicalExpr) any {
 	left := i.evaluate(expr.Left)
 
@@ -197,7 +250,7 @@ func (i *Interpreter) VisitListExpr(expr *ast.ListExpr) any {
 }
 
 func (i *Interpreter) VisitIndexExpr(expr *ast.IndexExpr) any {
-	object := i.evaluate(expr.List)
+	object := i.evaluate(expr.Object)
 	index := i.evaluate(expr.Index)
 
 	switch obj := object.(type) {

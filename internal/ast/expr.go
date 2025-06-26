@@ -73,8 +73,14 @@ type ListExpr struct {
 }
 
 type IndexExpr struct {
-	List  Expr
-	Index Expr
+	Object Expr
+	Index  Expr
+}
+
+type SetIndexExpr struct {
+	Object Expr
+	Index  Expr
+	Value  Expr
 }
 
 type DictExpr struct {
