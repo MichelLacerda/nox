@@ -11,7 +11,12 @@ let value = {
         "created_at": "2023-10-01T12:00:00Z",
         "updated_at": "2023-10-01T12:00:00Z"
     }
-};
+}
 
-print "code: " + value["code"];
-print value;
+value.set("code", 403)
+value["message"] = "Forbidden"
+value["status"] = "error"
+value["errors"] = ["Access denied", "Invalid credentials"]
+
+print "code: " + value["code"]
+print value
