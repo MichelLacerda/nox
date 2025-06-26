@@ -234,7 +234,9 @@ export func greet(name) {
 ```nox
 let nums = [1, 2, 3]
 nums.append(4)
-print nums[0]  # 1
+print nums[0]  // 1
+nums[2] = 6
+print nums // 1, 2, 6, 4
 ```
 
 Common methods: `append`, `pop`, `remove`, `insert`, `length`, `contains`, `sort`, `reverse`
@@ -246,7 +248,11 @@ Common methods: `append`, `pop`, `remove`, `insert`, `length`, `contains`, `sort
 ```nox
 let data = {"name": "Ana", "level": 10}
 print data["name"]
-data.get("age", 21)
+print data.get("age", 21)
+
+data["name"] = "Linda Torczon"
+data.set("level", 99)
+print data
 ```
 
 Methods: `get`, `set`, `remove`, `contains`, `length`, `keys`, `values`
