@@ -45,13 +45,15 @@ func (i *Interpreter) VisitCallExpr(expr *ast.CallExpr) any {
 
 func (i *Interpreter) VisitGetExpr(expr *ast.GetExpr) any {
 	object := i.evaluate(expr.Object)
-
 	switch obj := object.(type) {
 	case *Instance:
 		return obj.Get(expr.Name)
 	case *ListInstance:
 		return obj.Get(expr.Name)
 	case *DictInstance:
+		if val, ok := obj.Entries[expr.Name.Lexeme]; ok {
+			return val
+		}
 		return obj.Get(expr.Name)
 	case string:
 		o := &StringInstance{Value: obj}
