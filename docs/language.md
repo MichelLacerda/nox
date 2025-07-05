@@ -121,7 +121,7 @@ Blocks `{ ... }` introduce new scopes. Variables declared inside do not escape.
     let x = 100
     print x
 }
-# x is not accessible here
+// x is not accessible here
 ```
 
 ---
@@ -138,24 +138,14 @@ func greet(name) {
 greet("Nox")
 ```
 
-Functions are first-class values:
-
-```nox
-let add = func(a, b) {
-    return a + b
-}
-
-print add(2, 3)  # 5
-```
-
 ---
 
 ## 🧪 Assert
 
-`assert(condition)` throws a runtime error if the condition is `nil` or `false`.
+`assert(condition, message)` throws a runtime error if the condition is `nil` or `false`.
 
 ```nox
-assert(user != nil)
+assert(user != nil, "User should not be nil")
 ```
 
 ---
