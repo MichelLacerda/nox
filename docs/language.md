@@ -176,23 +176,23 @@ let result = ?obj.method()
 
 ```nox
 class Animal {
-    func init(name) {
+    init(name) {
         self.name = name
     }
 
-    func speak() {
+    speak() {
         print self.name + " makes a sound."
     }
 }
 
 class Dog < Animal {
-    func init(name, breed) {
+    init(name, breed) {
         super.init(name)
         self.breed = breed
     }
 
-    func speak() {
-        super.speak()  // chama o método da superclasse
+    speak() {
+        super.speak() // calls Animal's speak method
         print self.name + " barks."
     }
 }
